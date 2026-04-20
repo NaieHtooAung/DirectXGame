@@ -7,8 +7,10 @@ void GameScene::Initialize() {
 
 	textureHandle_ = TextureManager::Load("./Resources/mario.png");
 	model_ = Model::Create();
+	
+	camera_.Initialize();
 	player_ = new Player();
-	player_->Initialize();
+	player_->Initialize(model_, textureHandle_, &camera_);
 }
 
 void GameScene::Update() {
@@ -18,9 +20,12 @@ void GameScene::Update() {
 }
 
 void GameScene::Draw() {
+	Model::PreDraw();
 
 	player_->Draw();
 
+	Model::PostDraw();
+	
 }
 
 GameScene::~GameScene() {
