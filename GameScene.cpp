@@ -12,7 +12,7 @@ void GameScene::Initialize() {
 	voiceHandle_ = Audio::GetInstance()->PlayWave(soundDataHandle_, true);
 	model_ = Model::Create();
 	worldTransform_.Initialize();
-	camera_->Initialize();
+	camera_.Initialize();
 }
 
 void GameScene::Update() {
@@ -35,14 +35,16 @@ void GameScene::Draw() {
 	Sprite::PreDraw();
 
 	sprite_->Draw();
-	//model_->Draw(worldTransform_,camera_,textureHandle1_);
-
+	
 	Sprite::PostDraw();
 	
+	Model::PreDraw();
+	model_->Draw(worldTransform_,camera_,textureHandle1_);
+	Model::PostDraw();
 
 }
 GameScene::~GameScene() {
 	delete sprite_;   
-	//delete model_;
+	delete model_;
 }
 
