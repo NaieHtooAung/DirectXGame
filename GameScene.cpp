@@ -2,33 +2,20 @@
 
 using namespace KamataEngine;
 
-
 void GameScene::Initialize() {
-	
-	textureHandle1_ = TextureManager::Load("./Resources/mario.png");
-	model_ = Model::Create();
-	worldTransform_.Initialize();
-	camera_.Initialize();
+
+	soundDataHandle_ = Audio::GetInstance()->LoadWave("./Resources/fanfare.wav");
+	Audio::GetInstance()->PlayWave(soundDataHandle_);
+	voiceHandle_ = Audio::GetInstance()->PlayWave(soundDataHandle_, true);
 }
 
 void GameScene::Update() {
 
-
+	if (Input::GetInstance()->TriggerKey(DIK_SPACE)) {
 	
-}
-
-void GameScene::Draw() {
-
-	Model::PreDraw();
-
-	model_->Draw(worldTransform_,camera_,textureHandle1_);
-
-	Model::PostDraw();
+		Audio::GetInstance()->StopWave(voiceHandle_);
 	
+	}
 
-}
-GameScene::~GameScene() {
-	  
-	delete model_;
 }
 

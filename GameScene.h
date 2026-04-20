@@ -9,12 +9,8 @@ public:
 	void Update();
 
 	void Draw();
-	~GameScene();
 
-private:
-	
-	uint32_t textureHandle1_ = 0;
-	KamataEngine::WorldTransform worldTransform_;
-	KamataEngine::Camera camera_;
-	KamataEngine::Model* model_ = nullptr;
+	private:
+	uint32_t soundDataHandle_ = 0;
+	    uint32_t voiceHandle_ = 0;
 };
