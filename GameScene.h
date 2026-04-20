@@ -20,4 +20,5 @@ private:
 	KamataEngine::Camera camera_;
 	KamataEngine::Sprite* sprite_ = nullptr;
 	KamataEngine::Model* model_ = nullptr;
+	float inputFloat3[3] = { 0, 0, 0 };
 };
