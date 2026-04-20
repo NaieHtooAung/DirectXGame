@@ -9,4 +9,7 @@ public:
 	void Update();
 
 	void Draw();
+
+	private:
+	float inputFloat3[3] = {0, 0, 0};
 };
