@@ -1,9 +1,10 @@
 #pragma once
 #include <KamataEngine.h>
-
+#include "Player.h"
 class GameScene
 {
 public:
+	Player* player_ = nullptr;
 	void Initialize();
 
 	void Update();
