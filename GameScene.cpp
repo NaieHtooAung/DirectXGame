@@ -6,10 +6,10 @@ using namespace KamataEngine;
 void GameScene::Initialize() {
 	textureHandle_ = TextureManager::Load("./Resources/uvChecker.png"); 
 	sprite_ = Sprite::Create(textureHandle_, {100, 50});
-	//textureHandle1_ = TextureManager::Load("./Resources/mario.jpg");
-	//model_ = Model::Create();
-	//worldTransform_.Initialize();
-	//camera_->Initialize();
+	textureHandle1_ = TextureManager::Load("./Resources/mario.jpg");
+	model_ = Model::Create();
+	worldTransform_.Initialize();
+	camera_->Initialize();
 }
 
 void GameScene::Update() {
