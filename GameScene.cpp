@@ -2,8 +2,17 @@
 
 using namespace KamataEngine;
 
-void GameScene::Initialize() {}
+void GameScene::Initialize() {
+
+	textureHandle_ = TextureManager::Load("./Resources/mario.png");
+	model_ = Model::Create();
+}
 
 void GameScene::Update() {}
 
 void GameScene::Draw() {}
+
+GameScene::~GameScene() {
+	delete model_;
+	delete debugCamera_;
+}
