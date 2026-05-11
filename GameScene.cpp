@@ -1,47 +1,10 @@
 #include "GameScene.h"
+#include "skydome.h"
 #include "Player.h"
+#include "mathUti.h"
 #include <cmath>
 
 using namespace KamataEngine;
-
-// =========================
-// MakeAffineMatrix
-// =========================
-Matrix4x4 MakeAffineMatrix(Vector3 scale, Vector3 rotate, Vector3 translate) {
-
-	Matrix4x4 matrix{};
-
-	float cosX = cosf(rotate.x);
-	float sinX = sinf(rotate.x);
-
-	float cosY = cosf(rotate.y);
-	float sinY = sinf(rotate.y);
-
-	float cosZ = cosf(rotate.z);
-	float sinZ = sinf(rotate.z);
-
-	matrix.m[0][0] = scale.x * (cosY * cosZ);
-	matrix.m[0][1] = scale.x * (cosY * sinZ);
-	matrix.m[0][2] = scale.x * (-sinY);
-	matrix.m[0][3] = 0.0f;
-
-	matrix.m[1][0] = scale.y * (sinX * sinY * cosZ - cosX * sinZ);
-	matrix.m[1][1] = scale.y * (sinX * sinY * sinZ + cosX * cosZ);
-	matrix.m[1][2] = scale.y * (sinX * cosY);
-	matrix.m[1][3] = 0.0f;
-
-	matrix.m[2][0] = scale.z * (cosX * sinY * cosZ + sinX * sinZ);
-	matrix.m[2][1] = scale.z * (cosX * sinY * sinZ - sinX * cosZ);
-	matrix.m[2][2] = scale.z * (cosX * cosY);
-	matrix.m[2][3] = 0.0f;
-
-	matrix.m[3][0] = translate.x;
-	matrix.m[3][1] = translate.y;
-	matrix.m[3][2] = translate.z;
-	matrix.m[3][3] = 1.0f;
-
-	return matrix;
-}
 
 // =========================
 // Initialize
@@ -53,10 +16,22 @@ void GameScene::Initialize() {
 	blockModel_ = Model::Create();
 
 	camera_.Initialize();
-
 	debugCamera_ = new DebugCamera(1280, 720);
 
 	isDebugCameraActive_ = true;
+
+	player_ = new Player();
+
+	textureHandlePlayer_ = TextureManager::Load("./Resources/mario.png");
+	model_ = Model::Create();
+	player_->Initialize(model_, textureHandlePlayer_, &camera_);
+
+	skydome_ = new skydome();
+
+	skydome_->initialize();
+
+	camera_.farZ = 1000.0f;
+	camera_.UpdateMatrix();
 
 	const uint32_t kNumBlockVirtical = 10;
 	const uint32_t kNumBlockHorizontal = 20;
@@ -90,6 +65,8 @@ void GameScene::Initialize() {
 // Update
 // =========================
 void GameScene::Update() {
+	player_->Update();
+	skydome_->update();
 	for (std::vector<WorldTransform*>& worldTransformBlockLine : worldTransformBlocks_) {
 		for (WorldTransform* worldTransformBlock : worldTransformBlockLine) {
 			if (!worldTransformBlock) {
@@ -126,12 +103,13 @@ void GameScene::Update() {
 #endif
 	debugCamera_->Update();
 	if (isDebugCameraActive_) {
+
 		camera_.matView = debugCamera_->GetCamera().matView;
+
 		camera_.matProjection = debugCamera_->GetCamera().matProjection;
 		camera_.TransferMatrix();
-		;
-
 	} else {
+
 		camera_.UpdateMatrix();
 	}
 }
@@ -143,15 +121,23 @@ void GameScene::Update() {
 void GameScene::Draw() {
 
 	Model::PreDraw();
+
+	player_->Draw();
+	// skydome
+	skydome_->Draw(camera_);
+
+	// blocks
 	for (std::vector<WorldTransform*>& worldTransformBlockLine : worldTransformBlocks_) {
 		for (WorldTransform* worldTransformBlock : worldTransformBlockLine) {
 
 			if (!worldTransformBlock) {
 				continue;
 			}
+
 			blockModel_->Draw(*worldTransformBlock, camera_, textureHandle_);
 		}
 	}
+
 	Model::PostDraw();
 }
 
@@ -161,7 +147,10 @@ void GameScene::Draw() {
 GameScene::~GameScene() {
 
 	delete blockModel_;
+	delete model_;
 	delete debugCamera_;
+	delete player_;
+	delete skydome_;
 	for (std::vector<WorldTransform*>& worldTransformBlockLine : worldTransformBlocks_) {
 		for (WorldTransform* worldTransformBlock : worldTransformBlockLine) {
 
