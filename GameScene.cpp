@@ -33,6 +33,10 @@ void GameScene::Initialize() {
 	camera_.farZ = 1000.0f;
 	camera_.UpdateMatrix();
 
+	mapchipField_ = new MapChipField;
+	mapchipField_->LoadMapChipCsv("Resources/blocks.csv");
+
+	GenerateBlocks();
 	const uint32_t kNumBlockVirtical = 10;
 	const uint32_t kNumBlockHorizontal = 20;
 	const float kBlockHeight = 2.0f;
@@ -141,6 +145,33 @@ void GameScene::Draw() {
 	Model::PostDraw();
 }
 
+void GameScene::GenerateBlocks() {
+
+	uint32_t numBlockVirtical = mapchipField_->GetNumBlockVirtical();
+	uint32_t numBlockHorizontal = mapchipField_->GetNumBlockHorizontal();
+
+	worldTransformBlocks_.resize(numBlockVirtical);
+	for (uint32_t i = 0; i < numBlockVirtical; i++) {
+
+		worldTransformBlocks_[i].resize(numBlockHorizontal);
+
+	}
+	for (uint32_t i = 0; i < numBlockVirtical; i++) {
+		for (uint32_t j = 0; j < numBlockHorizontal; j++) {
+			if (mapchipField_->GetmapChipTypeByIndex(j, i) == MapChipType::kBlank) {
+				delete worldTransformBlocks_[i][j];
+				worldTransformBlocks_[i][j] = nullptr;
+				continue;
+			}
+			worldTransformBlocks_[i][j] = new WorldTransform();
+			worldTransformBlocks_[i][j]->Initialize();
+			Vector3 blockPosition = mapchipField_->GetmapChipPositionByIndex(j, i);
+			worldTransformBlocks_[i][j]->translation_ = blockPosition;
+		}
+	}
+
+}
+
 // =========================
 // Destructor
 // =========================
@@ -151,6 +182,7 @@ GameScene::~GameScene() {
 	delete debugCamera_;
 	delete player_;
 	delete skydome_;
+	delete mapchipField_;
 	for (std::vector<WorldTransform*>& worldTransformBlockLine : worldTransformBlocks_) {
 		for (WorldTransform* worldTransformBlock : worldTransformBlockLine) {
 
