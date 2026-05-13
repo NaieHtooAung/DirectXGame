@@ -28,7 +28,7 @@ void Player::Initialize(KamataEngine::Model* model, uint32_t textureHandlePlayer
 void Player::Update() {
 
 	// rotation animation
-	worldTransform_.rotation_.y += 0.03f;
+	worldTransform_.rotation_.y = 0.00f;
 
 	// affine matrix
 	worldTransform_.matWorld_ = MakeAffineMatrix(worldTransform_.scale_, worldTransform_.rotation_, worldTransform_.translation_);

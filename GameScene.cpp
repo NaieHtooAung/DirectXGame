@@ -37,32 +37,7 @@ void GameScene::Initialize() {
 	mapchipField_->LoadMapChipCsv("Resources/blocks.csv");
 
 	GenerateBlocks();
-	const uint32_t kNumBlockVirtical = 10;
-	const uint32_t kNumBlockHorizontal = 20;
-	const float kBlockHeight = 2.0f;
-	const float kBlockWidth = 2.0f;
-	worldTransformBlocks_.resize(kNumBlockVirtical);
-	for (uint32_t i = 0; i < kNumBlockVirtical; i++) {
-
-		worldTransformBlocks_[i].resize(kNumBlockHorizontal);
-
-	}
-	for (uint32_t i = 0; i < kNumBlockVirtical; i++) {
-		for (uint32_t j = 0; j < kNumBlockHorizontal; j++) {
-			if ((i + j) % 2 == 0) {
-
-				delete worldTransformBlocks_[i][j];
-
-				worldTransformBlocks_[i][j] = nullptr;
-
-				continue;
-			}
-			worldTransformBlocks_[i][j] = new WorldTransform();
-			worldTransformBlocks_[i][j]->Initialize();
-			worldTransformBlocks_[i][j]->translation_.x = kBlockWidth * j;
-			worldTransformBlocks_[i][j]->translation_.y = kBlockHeight * i;
-		}
-	}
+	
 }
 
 // =========================
@@ -81,7 +56,7 @@ void GameScene::Update() {
 			worldTransformBlock->scale_ = {1.0f, 1.0f, 1.0f};
 
 			// Rotation
-			worldTransformBlock->rotation_.y += 0.01f;
+			worldTransformBlock->rotation_.y = 0.00f;
 
 			// World Matrix
 			worldTransformBlock->matWorld_ = MakeAffineMatrix(worldTransformBlock->scale_, worldTransformBlock->rotation_, worldTransformBlock->translation_);
@@ -157,15 +132,19 @@ void GameScene::GenerateBlocks() {
 
 	}
 	for (uint32_t i = 0; i < numBlockVirtical; i++) {
+
 		for (uint32_t j = 0; j < numBlockHorizontal; j++) {
-			if (mapchipField_->GetmapChipTypeByIndex(j, i) == MapChipType::kBlank) {
-				delete worldTransformBlocks_[i][j];
-				worldTransformBlocks_[i][j] = nullptr;
+
+			if (mapchipField_->GetmapChipTypeByIndex(j, i) != MapChipType::kBlock) {
 				continue;
 			}
+
 			worldTransformBlocks_[i][j] = new WorldTransform();
+
 			worldTransformBlocks_[i][j]->Initialize();
+
 			Vector3 blockPosition = mapchipField_->GetmapChipPositionByIndex(j, i);
+
 			worldTransformBlocks_[i][j]->translation_ = blockPosition;
 		}
 	}

@@ -18,7 +18,7 @@ public:
 	uint32_t GetNumBlockHorizontal() const;
 
 	MapChipField();
-	~MapChipField();
+
 
 private:
 	MapChipData mapChipData_;

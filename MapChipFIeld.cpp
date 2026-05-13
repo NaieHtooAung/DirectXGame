@@ -75,8 +75,10 @@ uint32_t MapChipField::GetNumBlockVirtical() const { return kNumBlockVirtical; }
 
 uint32_t MapChipField::GetNumBlockHorizontal() const { return kNumBlockHorizontal; }
 
+MapChipField::MapChipField() {}
+
 Vector3 MapChipField::GetmapChipPositionByIndex(uint32_t xIndex, uint32_t yIndex) { 
 
-	return Vector3(kBlockWidth * xIndex, kBlockHeight * (kNumBlockVirtical - 1 - yIndex), 0);
+	return Vector3(kBlockWidth * xIndex, kBlockHeight * (kNumBlockVirtical - 1 - yIndex), 5.0f);
 
 }
