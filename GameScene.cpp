@@ -2,6 +2,7 @@
 #include "skydome.h"
 #include "Player.h"
 #include "mathUti.h"
+#include "MapChipFIeld.h"
 #include <cmath>
 
 using namespace KamataEngine;
@@ -11,9 +12,9 @@ using namespace KamataEngine;
 // =========================
 void GameScene::Initialize() {
 
-	textureHandle_ = TextureManager::Load("./Resources/cube/cube.jpg");
+	textureHandle_ = TextureManager::Load("./Resources/block/block.png");
 
-	blockModel_ = Model::Create();
+	blockModel_ = Model::CreateFromOBJ("block", true);
 
 	camera_.Initialize();
 	debugCamera_ = new DebugCamera(1280, 720);
@@ -22,9 +23,11 @@ void GameScene::Initialize() {
 
 	player_ = new Player();
 
-	textureHandlePlayer_ = TextureManager::Load("./Resources/mario.png");
-	model_ = Model::Create();
-	player_->Initialize(model_, textureHandlePlayer_, &camera_);
+	textureHandlePlayer_ = TextureManager::Load("./Resources/player/player.png");
+	model_ = Model::CreateFromOBJ("player", true);
+
+	Vector3 playerPosition = mapchipField_->GetmapChipPositionByIndex(1,18);
+	player_->Initialize(model_, textureHandlePlayer_, &camera_,playerPosition);
 
 	skydome_ = new skydome();
 
