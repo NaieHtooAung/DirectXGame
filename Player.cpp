@@ -127,6 +127,9 @@ void Player::Update() {
 
 	// send to GPU
 	worldTransform_.TransferMatrix();
+
+	
 }
+const WorldTransform& Player::GetWorldTransform() const { return worldTransform_; }
 void Player::Draw() { model_->Draw(worldTransform_, *camera_, textureHandlePlayer_); }
 Player::~Player() {}

@@ -3,6 +3,7 @@
 #include "Player.h"
 #include "mathUti.h"
 #include "MapChipFIeld.h"
+#include "CameraController.h"
 #include <cmath>
 
 using namespace KamataEngine;
@@ -17,30 +18,51 @@ void GameScene::Initialize() {
 	blockModel_ = Model::CreateFromOBJ("block", true);
 
 	camera_.Initialize();
+
 	debugCamera_ = new DebugCamera(1280, 720);
 
-	isDebugCameraActive_ = true;
+	//debug camera activation flag
+	isDebugCameraActive_ = false;
 
+	// MAP FIRST
+	mapchipField_ = new MapChipField();
+
+	mapchipField_->LoadMapChipCsv("Resources/blocks.csv");
+
+	// PLAYER
 	player_ = new Player();
 
 	textureHandlePlayer_ = TextureManager::Load("./Resources/player/player.png");
+
 	model_ = Model::CreateFromOBJ("player", true);
 
-	Vector3 playerPosition = mapchipField_->GetmapChipPositionByIndex(1,18);
-	player_->Initialize(model_, textureHandlePlayer_, &camera_,playerPosition);
+	Vector3 playerPosition = mapchipField_->GetmapChipPositionByIndex(1, 18);
 
+	player_->Initialize(model_, textureHandlePlayer_, &camera_, playerPosition);
+
+	// CAMERA CONTROLLER
+	cameraController_ = new CameraController();
+
+	cameraController_->Initialize(&camera_, player_);
+
+	CameraController::Rect movableArea = {
+	    0.0f,   // left
+	    100.0f, // top
+	    100.0f, // right
+	    0.0f    // bottom
+	};
+
+	cameraController_->SetMovableArea(movableArea);
+	// SKYDOME
 	skydome_ = new skydome();
 
 	skydome_->initialize();
 
 	camera_.farZ = 1000.0f;
+
 	camera_.UpdateMatrix();
 
-	mapchipField_ = new MapChipField;
-	mapchipField_->LoadMapChipCsv("Resources/blocks.csv");
-
 	GenerateBlocks();
-	
 }
 
 // =========================
@@ -49,6 +71,7 @@ void GameScene::Initialize() {
 void GameScene::Update() {
 	player_->Update();
 	skydome_->update();
+	cameraController_->Update();
 	for (std::vector<WorldTransform*>& worldTransformBlockLine : worldTransformBlocks_) {
 		for (WorldTransform* worldTransformBlock : worldTransformBlockLine) {
 			if (!worldTransformBlock) {
