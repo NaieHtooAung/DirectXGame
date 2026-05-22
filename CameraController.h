@@ -17,7 +17,7 @@ public:
 	};
 	static inline const float kInterpolationRate = 0.1f;
 	static inline const float kVelocityBias = 0.15f;
-	static inline const Rect marginArea_ = {5.0f, 5.0f, 5.0f, 5.0f};
+	static inline const Rect marginArea_ = {-5.0f, 4.0f, 5.0f, 5.0f};
 	void SetMovableArea(const Rect& area) { movableArea_ = area; }
 	~ CameraController();
 

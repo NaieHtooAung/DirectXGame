@@ -57,13 +57,13 @@ void CameraController::Update() {
 	//camera_->translation_.x = std::clamp(camera_->translation_.x, movableArea_.left, movableArea_.right);
 
 	//camera_->translation_.y = std::clamp(camera_->translation_.y, movableArea_.bottom, movableArea_.top);
-	camera_->translation_.x = std::max(camera_->translation_.x, movableArea_.left + marginArea_.left);
+	//  keep player inside screen area
 
-	camera_->translation_.x = std::min(camera_->translation_.x, movableArea_.right + marginArea_.right);
+	camera_->translation_.x = std::max(camera_->translation_.x, targetWorldTransform.translation_.x + marginArea_.left);
+	camera_->translation_.x = std::min(camera_->translation_.x, targetWorldTransform.translation_.x + marginArea_.right);
+	camera_->translation_.y = std::max(camera_->translation_.y, targetWorldTransform.translation_.y + marginArea_.bottom);
+	camera_->translation_.y = std::min(camera_->translation_.y, targetWorldTransform.translation_.y + marginArea_.top);
 
-	camera_->translation_.y = std::max(camera_->translation_.y, movableArea_.bottom + marginArea_.bottom);
-
-	camera_->translation_.y = std::min(camera_->translation_.y, movableArea_.top + marginArea_.top);
 	//// look at player
 	//Vector3 direction;
 
