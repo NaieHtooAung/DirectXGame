@@ -271,7 +271,7 @@
   <ItemGroup>
     <ClInclude Include="CameraController.h" />
     <ClInclude Include="GameScene.h" />
-    <ClInclude Include="MapChipFIeld.h" />
+    <ClInclude Include="MapChipField.h" />
     <ClInclude Include="mathUti.h" />
     <ClInclude Include="Player.h" />
     <ClInclude Include="skydome.h" />

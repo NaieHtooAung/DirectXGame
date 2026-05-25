@@ -102,7 +102,7 @@
     <ClInclude Include="mathUti.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="MapChipFIeld.h">
+    <ClInclude Include="MapChipField.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="CameraController.h">

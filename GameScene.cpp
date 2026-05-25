@@ -2,7 +2,7 @@
 #include "skydome.h"
 #include "Player.h"
 #include "mathUti.h"
-#include "MapChipFIeld.h"
+#include "MapChipField.h"
 #include "CameraController.h"
 #include <cmath>
 
@@ -26,7 +26,7 @@ void GameScene::Initialize() {
 
 	// MAP FIRST
 	mapchipField_ = new MapChipField();
-
+	
 	mapchipField_->LoadMapChipCsv("Resources/blocks.csv");
 
 	// PLAYER
@@ -36,10 +36,11 @@ void GameScene::Initialize() {
 
 	model_ = Model::CreateFromOBJ("player", true);
 
-	Vector3 playerPosition = mapchipField_->GetmapChipPositionByIndex(1, 18);
+	Vector3 playerPosition = mapchipField_->GetmapChipPositionByIndex(1, 17);
 
 	player_->Initialize(model_, textureHandlePlayer_, &camera_, playerPosition);
 
+	player_->setMapChipField(mapchipField_);
 	// CAMERA CONTROLLER
 	cameraController_ = new CameraController();
 
