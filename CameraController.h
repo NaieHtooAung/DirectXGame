@@ -5,6 +5,13 @@ using namespace KamataEngine;
 class Player;
 class  CameraController {
 public:
+	enum  class Mode {
+		kFollow,
+		kForcedScroll,
+	};
+	Mode mode_ = Mode::kFollow;
+	void setMode(Mode mode) { mode_ = mode; }
+	Mode getMode() const { return mode_; }
 	void Initialize(Camera* camera, Player* player);
 	void Update();
 	void SetTarget(Player* target) { target_ = target; }
