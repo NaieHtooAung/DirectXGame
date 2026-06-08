@@ -3,6 +3,7 @@
 #include <KamataEngine.h>
 #include "skydome.h"
 #include "Player.h"
+#include "Enemy.h"
 #include "CameraController.h"
 #include "MapChipField.h"
 class GameScene {
@@ -22,9 +23,11 @@ public:
 private:
 	uint32_t textureHandle_ = 0;
 	uint32_t textureHandlePlayer_ = 0;
+	uint32_t textureHandleEnemy_ = 0;
 	MapChipField* mapchipField_;
 	KamataEngine::Model* blockModel_ = nullptr;
 	KamataEngine::Model* model_ = nullptr;
+	Model* enemyModel_ = nullptr;
 	CameraController* cameraController_ = nullptr;
 	KamataEngine::WorldTransform worldTransform_;
 	KamataEngine::Camera camera_;
@@ -32,5 +35,5 @@ private:
 
 	skydome* skydome_ = nullptr;
 	Player* player_ = nullptr;
-	
+	Enemy* Enemy_ = nullptr;
 };

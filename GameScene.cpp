@@ -1,6 +1,7 @@
 #include "GameScene.h"
 #include "skydome.h"
 #include "Player.h"
+#include "Enemy.h"
 #include "mathUti.h"
 #include "MapChipField.h"
 #include "CameraController.h"
@@ -41,6 +42,19 @@ void GameScene::Initialize() {
 	player_->Initialize(model_, textureHandlePlayer_, &camera_, playerPosition);
 
 	player_->setMapChipField(mapchipField_);
+
+	Enemy_ = new Enemy();
+
+	textureHandleEnemy_ = TextureManager::Load("./Resources/enemy/enemy.png");
+
+	Vector3 enemyPosition = mapchipField_->GetmapChipPositionByIndex(5, 17); 
+
+	enemyModel_ = Model::CreateFromOBJ("enemy", true);
+	Enemy_->Initialize(enemyModel_, textureHandleEnemy_, &camera_, enemyPosition);
+
+	Enemy_->setMapChipField(mapchipField_);
+
+	
 	// CAMERA CONTROLLER
 	cameraController_ = new CameraController();
 
@@ -71,6 +85,7 @@ void GameScene::Initialize() {
 // =========================
 void GameScene::Update() {
 	player_->Update();
+	Enemy_->update();
 	skydome_->update();
 	cameraController_->Update();
 	for (std::vector<WorldTransform*>& worldTransformBlockLine : worldTransformBlocks_) {
@@ -125,21 +140,18 @@ void GameScene::Update() {
 // Draw
 // =========================
 void GameScene::Draw() {
-
 	Model::PreDraw();
 
-	player_->Draw();
-	// skydome
 	skydome_->Draw(camera_);
+	player_->Draw();
+	Enemy_->draw();
 
-	// blocks
 	for (std::vector<WorldTransform*>& worldTransformBlockLine : worldTransformBlocks_) {
 		for (WorldTransform* worldTransformBlock : worldTransformBlockLine) {
-
-			if (!worldTransformBlock) {
+			if (!worldTransformBlock)
 				continue;
-			}
-
+			if (!blockModel_)
+				continue;
 			blockModel_->Draw(*worldTransformBlock, camera_, textureHandle_);
 		}
 	}
@@ -187,6 +199,7 @@ GameScene::~GameScene() {
 	delete model_;
 	delete debugCamera_;
 	delete player_;
+	delete Enemy_;
 	delete skydome_;
 	delete mapchipField_;
 	for (std::vector<WorldTransform*>& worldTransformBlockLine : worldTransformBlocks_) {
