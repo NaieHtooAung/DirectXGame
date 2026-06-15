@@ -6,6 +6,7 @@
 #include "Enemy.h"
 #include "CameraController.h"
 #include "MapChipField.h"
+#include "DeathParticles.h"
 class GameScene {
 	std::vector<std::vector<KamataEngine::WorldTransform*>> worldTransformBlocks_;
 	std::list<Enemy*> enemies_;
@@ -35,6 +36,8 @@ private:
 	KamataEngine::WorldTransform worldTransform_;
 	KamataEngine::Camera camera_;
 	KamataEngine::DebugCamera* debugCamera_ = nullptr;
+	DeathParticles* deathParticles_ = nullptr;
+	KamataEngine::Model* deathParticlesModel_ = nullptr;
 
 	skydome* skydome_ = nullptr;
 	Player* player_ = nullptr;

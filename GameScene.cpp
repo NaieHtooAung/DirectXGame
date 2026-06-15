@@ -37,6 +37,9 @@ void GameScene::Initialize() {
 
 	model_ = Model::CreateFromOBJ("player", true);
 
+	deathParticlesModel_ = Model::CreateFromOBJ("player", true);
+	deathParticles_ = new DeathParticles();
+
 	Vector3 playerPosition = mapchipField_->GetmapChipPositionByIndex(1, 17);
 
 	player_->Initialize(model_, textureHandlePlayer_, &camera_, playerPosition);
@@ -87,6 +90,9 @@ void GameScene::Update() {
 	player_->Update();
 	for (Enemy* enemy : enemies_) {
 		enemy->update();
+	}
+	if (deathParticles_) {
+		deathParticles_->Update();
 	}
 	skydome_->update();
 	cameraController_->Update();
@@ -147,6 +153,9 @@ void GameScene::Draw() {
 
 	skydome_->Draw(camera_);
 	player_->Draw();
+	if (deathParticles_) {
+		deathParticles_->Draw();
+	}
 	for (Enemy* enemy:enemies_) {
 		enemy->draw();
 	}
@@ -196,7 +205,6 @@ void GameScene::GenerateBlocks() {
 }
 
 void GameScene::CheckAllCollisions() {
-
 	Player::AABB aabb1;
 	Enemy::AABB aabb2;
 
@@ -204,13 +212,13 @@ void GameScene::CheckAllCollisions() {
 	for (Enemy* enemy : enemies_) {
 		aabb2 = enemy->GetAABB();
 		if (aabb1.min.x <= aabb2.max.x && aabb1.max.x >= aabb2.min.x && aabb1.min.y <= aabb2.max.y && aabb1.max.y >= aabb2.min.y) {
-			// hit!
-			player_->onCollision(enemy);
-			enemy->onCollision(player_);
+			if (!deathParticles_->IsFinished() && !deathParticles_->isInitialized_) {
+				Vector3 pos = player_->GetWorldPosition();
+				deathParticles_->Initialize(deathParticlesModel_, textureHandlePlayer_, &camera_, pos);
+			}
 		}
 	}
 }
-
 // =========================
 // Destructor
 // =========================
@@ -221,6 +229,8 @@ GameScene::~GameScene() {
 	delete debugCamera_;
 	delete player_;
 	delete skydome_;
+	delete deathParticles_;
+	delete deathParticlesModel_;
 	for (Enemy* enemy : enemies_){
 		delete enemy;
 	}
