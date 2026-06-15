@@ -43,18 +43,18 @@ void GameScene::Initialize() {
 
 	player_->setMapChipField(mapchipField_);
 
-	Enemy_ = new Enemy();
-
 	textureHandleEnemy_ = TextureManager::Load("./Resources/enemy/enemy.png");
 
-	Vector3 enemyPosition = mapchipField_->GetmapChipPositionByIndex(5, 17); 
-
 	enemyModel_ = Model::CreateFromOBJ("enemy", true);
-	Enemy_->Initialize(enemyModel_, textureHandleEnemy_, &camera_, enemyPosition);
 
-	Enemy_->setMapChipField(mapchipField_);
+	for (int32_t i = 0; i < 3; i++) {
+		Enemy* newEnemy = new Enemy();
+		Vector3 enemysPosition = mapchipField_->GetmapChipPositionByIndex(10 + i * 5, 17);
+		newEnemy->Initialize(enemyModel_, textureHandleEnemy_ ,&camera_, enemysPosition);
+		newEnemy->setMapChipField(mapchipField_);
+		enemies_.push_back(newEnemy);
+	}
 
-	
 	// CAMERA CONTROLLER
 	cameraController_ = new CameraController();
 
@@ -85,9 +85,12 @@ void GameScene::Initialize() {
 // =========================
 void GameScene::Update() {
 	player_->Update();
-	Enemy_->update();
+	for (Enemy* enemy : enemies_) {
+		enemy->update();
+	}
 	skydome_->update();
 	cameraController_->Update();
+	CheckAllCollisions();
 	for (std::vector<WorldTransform*>& worldTransformBlockLine : worldTransformBlocks_) {
 		for (WorldTransform* worldTransformBlock : worldTransformBlockLine) {
 			if (!worldTransformBlock) {
@@ -144,7 +147,9 @@ void GameScene::Draw() {
 
 	skydome_->Draw(camera_);
 	player_->Draw();
-	Enemy_->draw();
+	for (Enemy* enemy:enemies_) {
+		enemy->draw();
+	}
 
 	for (std::vector<WorldTransform*>& worldTransformBlockLine : worldTransformBlocks_) {
 		for (WorldTransform* worldTransformBlock : worldTransformBlockLine) {
@@ -190,6 +195,22 @@ void GameScene::GenerateBlocks() {
 
 }
 
+void GameScene::CheckAllCollisions() {
+
+	Player::AABB aabb1;
+	Enemy::AABB aabb2;
+
+	aabb1 = player_->GetAABB();
+	for (Enemy* enemy : enemies_) {
+		aabb2 = enemy->GetAABB();
+		if (aabb1.min.x <= aabb2.max.x && aabb1.max.x >= aabb2.min.x && aabb1.min.y <= aabb2.max.y && aabb1.max.y >= aabb2.min.y) {
+			// hit!
+			player_->onCollision(enemy);
+			enemy->onCollision(player_);
+		}
+	}
+}
+
 // =========================
 // Destructor
 // =========================
@@ -199,8 +220,10 @@ GameScene::~GameScene() {
 	delete model_;
 	delete debugCamera_;
 	delete player_;
-	delete Enemy_;
 	delete skydome_;
+	for (Enemy* enemy : enemies_){
+		delete enemy;
+	}
 	delete mapchipField_;
 	for (std::vector<WorldTransform*>& worldTransformBlockLine : worldTransformBlocks_) {
 		for (WorldTransform* worldTransformBlock : worldTransformBlockLine) {

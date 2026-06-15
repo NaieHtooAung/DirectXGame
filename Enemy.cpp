@@ -61,6 +61,12 @@ void Enemy::update() {
 
 void Enemy::draw() { enemyModel_->Draw(worldTransform_, *camera_, textureHandleEnemy_); }
 
+void Enemy::onCollision(const Player* player) {
+
+	(void)player;
+
+}
+
 void Enemy::CollisionMap(CollisionMapInfo& info) {
 	CollisionMapTop(info);
 	CollisionMapBottom(info);
@@ -129,7 +135,21 @@ void Enemy::CollisionMapTop(CollisionMapInfo& info) {
 		info.isHitUp = true;
 	}
 }
+Vector3 Enemy::GetWorldPosition() {
+	Vector3 worldPos;
+	worldPos.x = worldTransform_.translation_.x;
+	worldPos.y = worldTransform_.translation_.y;
+	worldPos.z = worldTransform_.translation_.z;
+	return worldPos;
+}
 
+Enemy::AABB Enemy::GetAABB() {
+	Vector3 worldPos = GetWorldPosition();
+	AABB aabb;
+	aabb.min = {worldPos.x - kWidth / 2.0f, worldPos.y - kHeight / 2.0f, worldPos.z};
+	aabb.max = {worldPos.x + kWidth / 2.0f, worldPos.y + kHeight / 2.0f, worldPos.z};
+	return aabb;
+}
 void Enemy::CollisionMapRight(CollisionMapInfo& info) {
 	if (info.velocityAfterCollision.x <= 0)
 		return;

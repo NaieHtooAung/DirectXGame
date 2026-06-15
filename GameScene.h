@@ -8,6 +8,7 @@
 #include "MapChipField.h"
 class GameScene {
 	std::vector<std::vector<KamataEngine::WorldTransform*>> worldTransformBlocks_;
+	std::list<Enemy*> enemies_;
 	bool isDebugCameraActive_ = false;
 
 public:
@@ -18,6 +19,8 @@ public:
 	void Draw();
 
 	void GenerateBlocks();
+
+	void CheckAllCollisions();
 	~GameScene();
 
 private:
@@ -35,5 +38,4 @@ private:
 
 	skydome* skydome_ = nullptr;
 	Player* player_ = nullptr;
-	Enemy* Enemy_ = nullptr;
 };

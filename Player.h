@@ -5,7 +5,7 @@
 using namespace KamataEngine;
 
 class MapChipField;
-
+class Enemy;
 class Player {
 public:
 	enum class LRDirection {
@@ -21,11 +21,15 @@ public:
 		kNumCorner
 
 	};
+
+	
 	float turnFirstRotationY_ = 0.0f;
 	float turnTimer_ = 0.0f;
 	bool onground_ = true;
 	LRDirection lrDirection_ = LRDirection::kRight;
 	Vector3 velocity_ = {0,0,0};
+	Vector3 GetWorldPosition();
+	
 	static inline const float kAcceleration = 0.01f;
 	static inline const float kAttenuation = 0.1f;
 	static inline const float kLimitRunSpeed = 1.0f;
@@ -36,6 +40,14 @@ public:
 	static inline const float kWidth = 0.8f;
 	static inline const float kHeight = 0.8f;
 	static inline const float kBlank = 0.01f;
+
+	struct AABB {
+
+		Vector3 min;
+		Vector3 max;
+	};
+
+	AABB GetAABB();
 
 	struct CollisionMapInfo {
 		bool isHitLeft = false;
@@ -60,6 +72,8 @@ public:
 	
 	void CollisionMap(CollisionMapInfo& info);
 	
+	void onCollision(const Enemy* enemy);
+
 	Vector3 CornerPosition(const Vector3& center, Corner corner);
 
 	~Player();

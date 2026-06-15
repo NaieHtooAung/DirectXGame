@@ -19,6 +19,8 @@ void Player::Initialize(KamataEngine::Model* model, uint32_t textureHandlePlayer
 	textureHandlePlayer_ = textureHandlePlayer;
 	camera_ = camera;
 
+	
+
 	worldTransform_.Initialize();
 
 	// player start position
@@ -29,6 +31,9 @@ void Player::Initialize(KamataEngine::Model* model, uint32_t textureHandlePlayer
 
 	// player rotation
 	worldTransform_.rotation_.y = std::numbers::pi_v<float> / 2.0f;
+
+	
+
 }
 
 void Player::Update() {
@@ -112,6 +117,23 @@ void Player::Update() {
 	// send to GPU
 	worldTransform_.TransferMatrix();
 }
+Player::AABB Player::GetAABB() { 
+
+	Vector3 worldPos = GetWorldPosition();
+
+	AABB aabb;
+	aabb.min = {worldPos.x - kWidth / 2.0f + kBlank, worldPos.y - kHeight / 2.0f + kBlank, worldPos.z};
+	aabb.max = {worldPos.x + kWidth / 2.0f - kBlank, worldPos.y + kHeight / 2.0f - kBlank, worldPos.z};
+	return aabb;
+
+}
+Vector3 Player::GetWorldPosition() {
+	Vector3 worldPos;
+	worldPos.x = worldTransform_.translation_.x;
+	worldPos.y = worldTransform_.translation_.y;
+	worldPos.z = worldTransform_.translation_.z;
+	return worldPos;
+}
 const WorldTransform& Player::GetWorldTransform() const { return worldTransform_; }
 
 void Player::Draw() { model_->Draw(worldTransform_, *camera_, textureHandlePlayer_); }
@@ -121,6 +143,14 @@ void Player::CollisionMap(CollisionMapInfo& info) {
 	CollisionMapBottom(info); // 下
 	CollisionMapRight(info);  // 右
 	CollisionMapleft(info);   // 左
+}
+
+void Player::onCollision(const Enemy* enemy) {
+
+	(void)enemy;
+
+	velocity_.y += kJumpAcceleration;
+
 }
 
 void Player::CollisionMapTop(CollisionMapInfo& info) {
