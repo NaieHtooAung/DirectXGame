@@ -212,14 +212,13 @@ void GameScene::CheckAllCollisions() {
 	for (Enemy* enemy : enemies_) {
 		aabb2 = enemy->GetAABB();
 		if (aabb1.min.x <= aabb2.max.x && aabb1.max.x >= aabb2.min.x && aabb1.min.y <= aabb2.max.y && aabb1.max.y >= aabb2.min.y) {
-			if (!deathParticles_->IsFinished() && !deathParticles_->isInitialized_) {
+			if (deathParticles_->IsFinished() || !deathParticles_->isInitialized_) {
 				Vector3 pos = player_->GetWorldPosition();
 				deathParticles_->Initialize(deathParticlesModel_, textureHandlePlayer_, &camera_, pos);
 			}
 		}
 	}
-}
-// =========================
+} // =========================
 // Destructor
 // =========================
 GameScene::~GameScene() {

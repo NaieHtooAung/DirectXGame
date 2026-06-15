@@ -1,5 +1,6 @@
 #pragma once
 #include "KamataEngine.h"
+#include <array>
 #include <cmath>
 using namespace KamataEngine;
 
@@ -22,8 +23,9 @@ private:
 	KamataEngine::Camera* camera_ = nullptr;
 
 	Vector3 velocities_[kNumParticles];
+	ObjectColor objectColor_;
+	Vector4 color_ = {1.0f, 1.0f, 1.0f, 1.0f};
 
 	float timer_ = 0.0f;
 	bool isFinished_ = false;
-	
 };
