@@ -7,6 +7,7 @@ using namespace KamataEngine;
 TitleScene::~TitleScene() {
 	delete titleModel_;
 	delete playerModel_;
+	delete fade_;
 }
 
 void TitleScene::Initialize() {
@@ -14,7 +15,9 @@ void TitleScene::Initialize() {
 	// カメラ初期化
 	camera_.Initialize();
 
-	// "Sugoi Man" 3Dロゴモデルの読み込み
+	fade_ = new Fade();
+	fade_->Initialize(titleTextureHandle_);
+	fade_->Start(Fade::Status::FadeIn, 3.0f);
 	titleTextureHandle_ = TextureManager::Load("./Resources/titleFont/white1x1.png");
 	titleModel_ = Model::CreateFromOBJ("titleFont", true);
 
@@ -34,32 +37,60 @@ void TitleScene::Initialize() {
 
 void TitleScene::Update() {
 
-	// タイマーを進める(浮遊アニメーション用)
+	fade_->Update();
+
+	switch (phase_) {
+
+	case Phase::kFadeIn:
+
+		if (fade_->IsFinished()) {
+			phase_ = Phase::kMain;
+		}
+		break;
+
+	case Phase::kMain:
+
+		// スペースキーでフェードアウト開始
+		if (Input::GetInstance()->PushKey(DIK_SPACE)) {
+
+			phase_ = Phase::kFadeOut;
+			fade_->Start(Fade::Status::FadeOut, 1.0f);
+		}
+		break;
+
+	case Phase::kFadeOut:
+
+		if (fade_->IsFinished()) {
+			finished_ = true;
+		}
+		break;
+	}
+
+	// タイマーを進める
 	parameterTimer_ += 0.05f;
 
-	// タイトルロゴをゆっくり上下に揺らす（浮遊エフェクト）
+	// タイトル浮遊
 	titleWorldTransform_.translation_.y = 3.0f + std::sin(parameterTimer_) * 0.2f;
 
-	// ワールド行列の更新
 	titleWorldTransform_.matWorld_ = MakeAffineMatrix(titleWorldTransform_.scale_, titleWorldTransform_.rotation_, titleWorldTransform_.translation_);
+
 	titleWorldTransform_.TransferMatrix();
 
 	playerWorldTransform_.matWorld_ = MakeAffineMatrix(playerWorldTransform_.scale_, playerWorldTransform_.rotation_, playerWorldTransform_.translation_);
+
 	playerWorldTransform_.TransferMatrix();
 
 	camera_.UpdateMatrix();
-
-	// スペースキーでゲームシーンへ
-	if (Input::GetInstance()->PushKey(DIK_SPACE)) {
-		finished_ = true;
-	}
 }
-
 void TitleScene::Draw() {
+
 	Model::PreDraw();
 
 	titleModel_->Draw(titleWorldTransform_, camera_, titleTextureHandle_);
+
 	playerModel_->Draw(playerWorldTransform_, camera_, playerTextureHandle_);
 
 	Model::PostDraw();
+
+	fade_->Draw();
 }

@@ -33,8 +33,10 @@ private:
 	bool isDebugCameraActive_ = false;
 
 	enum class Phase {
+		kFadeIn,
 		kPlay,
 		kDeath,
+		kFadeOut,
 	};
 	Phase phase_;
 

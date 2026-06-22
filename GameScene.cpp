@@ -30,7 +30,7 @@ void GameScene::Initialize() {
 
 	mapchipField_->LoadMapChipCsv("Resources/blocks.csv");
 
-	phase_ = Phase::kPlay;
+	phase_ = Phase::kFadeIn;
 
 	// PLAYER
 	player_ = new Player();
@@ -92,11 +92,41 @@ void GameScene::Initialize() {
 void GameScene::Update() {
 
 	switch (phase_) {
-	case GameScene::Phase::kPlay:
+
+	case Phase::kFadeIn:
+
+		// fade finished -> start game
+		phase_ = Phase::kPlay;
 		break;
-	case GameScene::Phase::kDeath:
+
+	case Phase::kPlay:
+
+		player_->Update();
+
+		for (Enemy* enemy : enemies_) {
+			enemy->update();
+		}
+
+		// if player died
+		if (deathParticles_ && deathParticles_->isInitialized_ && !deathParticles_->IsFinished()) {
+
+			phase_ = Phase::kDeath;
+		}
+
 		break;
-	default:
+
+	case Phase::kDeath:
+
+		if (deathParticles_ && deathParticles_->IsFinished()) {
+
+			phase_ = Phase::kFadeOut;
+		}
+
+		break;
+
+	case Phase::kFadeOut:
+
+		finished_ = true;
 		break;
 	}
 
