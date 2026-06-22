@@ -1,17 +1,15 @@
 #pragma once
-#include <vector>
-#include <KamataEngine.h>
-#include "skydome.h"
-#include "Player.h"
-#include "Enemy.h"
 #include "CameraController.h"
-#include "MapChipField.h"
 #include "DeathParticles.h"
-class GameScene {
-	std::vector<std::vector<KamataEngine::WorldTransform*>> worldTransformBlocks_;
-	std::list<Enemy*> enemies_;
-	bool isDebugCameraActive_ = false;
+#include "Enemy.h"
+#include "MapChipField.h"
+#include "Player.h"
+#include "skydome.h"
+#include <KamataEngine.h>
+#include <list>
+#include <vector>
 
+class GameScene {
 public:
 	void Initialize();
 
@@ -22,16 +20,33 @@ public:
 	void GenerateBlocks();
 
 	void CheckAllCollisions();
+
+	void ChangePhase();
+
+	bool IsFinished() const { return finished_; }
+
 	~GameScene();
 
 private:
+	std::vector<std::vector<KamataEngine::WorldTransform*>> worldTransformBlocks_;
+	std::list<Enemy*> enemies_;
+	bool isDebugCameraActive_ = false;
+
+	enum class Phase {
+		kPlay,
+		kDeath,
+	};
+	Phase phase_;
+
+	bool finished_ = false;
+
 	uint32_t textureHandle_ = 0;
 	uint32_t textureHandlePlayer_ = 0;
 	uint32_t textureHandleEnemy_ = 0;
-	MapChipField* mapchipField_;
+	MapChipField* mapchipField_ = nullptr;
 	KamataEngine::Model* blockModel_ = nullptr;
 	KamataEngine::Model* model_ = nullptr;
-	Model* enemyModel_ = nullptr;
+	KamataEngine::Model* enemyModel_ = nullptr;
 	CameraController* cameraController_ = nullptr;
 	KamataEngine::WorldTransform worldTransform_;
 	KamataEngine::Camera camera_;

@@ -26,6 +26,8 @@ public:
 	float turnFirstRotationY_ = 0.0f;
 	float turnTimer_ = 0.0f;
 	bool onground_ = true;
+	bool isDead_ = false;
+	bool isDead() const { return isDead_; }
 	LRDirection lrDirection_ = LRDirection::kRight;
 	Vector3 velocity_ = {0,0,0};
 	Vector3 GetWorldPosition();
@@ -54,6 +56,7 @@ public:
 		bool isHitRight = false;
 		bool isHitUp = false;
 		bool isHitDown = false;
+		
 		Vector3 velocityAfterCollision = {0, 0, 0};
 	};
 

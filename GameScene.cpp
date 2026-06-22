@@ -1,10 +1,10 @@
 #include "GameScene.h"
-#include "skydome.h"
-#include "Player.h"
-#include "Enemy.h"
-#include "mathUti.h"
-#include "MapChipField.h"
 #include "CameraController.h"
+#include "Enemy.h"
+#include "MapChipField.h"
+#include "Player.h"
+#include "mathUti.h"
+#include "skydome.h"
 #include <cmath>
 
 using namespace KamataEngine;
@@ -22,13 +22,15 @@ void GameScene::Initialize() {
 
 	debugCamera_ = new DebugCamera(1280, 720);
 
-	//debug camera activation flag
+	// debug camera activation flag
 	isDebugCameraActive_ = false;
 
 	// MAP FIRST
 	mapchipField_ = new MapChipField();
-	
+
 	mapchipField_->LoadMapChipCsv("Resources/blocks.csv");
+
+	phase_ = Phase::kPlay;
 
 	// PLAYER
 	player_ = new Player();
@@ -53,7 +55,7 @@ void GameScene::Initialize() {
 	for (int32_t i = 0; i < 3; i++) {
 		Enemy* newEnemy = new Enemy();
 		Vector3 enemysPosition = mapchipField_->GetmapChipPositionByIndex(10 + i * 5, 17);
-		newEnemy->Initialize(enemyModel_, textureHandleEnemy_ ,&camera_, enemysPosition);
+		newEnemy->Initialize(enemyModel_, textureHandleEnemy_, &camera_, enemysPosition);
 		newEnemy->setMapChipField(mapchipField_);
 		enemies_.push_back(newEnemy);
 	}
@@ -71,6 +73,7 @@ void GameScene::Initialize() {
 	};
 
 	cameraController_->SetMovableArea(movableArea);
+
 	// SKYDOME
 	skydome_ = new skydome();
 
@@ -87,6 +90,16 @@ void GameScene::Initialize() {
 // Update
 // =========================
 void GameScene::Update() {
+
+	switch (phase_) {
+	case GameScene::Phase::kPlay:
+		break;
+	case GameScene::Phase::kDeath:
+		break;
+	default:
+		break;
+	}
+
 	player_->Update();
 	for (Enemy* enemy : enemies_) {
 		enemy->update();
@@ -97,11 +110,11 @@ void GameScene::Update() {
 	skydome_->update();
 	cameraController_->Update();
 	CheckAllCollisions();
+
 	for (std::vector<WorldTransform*>& worldTransformBlockLine : worldTransformBlocks_) {
 		for (WorldTransform* worldTransformBlock : worldTransformBlockLine) {
 			if (!worldTransformBlock) {
 				continue;
-				
 			}
 			// Scale
 			worldTransformBlock->scale_ = {1.0f, 1.0f, 1.0f};
@@ -114,10 +127,9 @@ void GameScene::Update() {
 
 			// Transfer
 			worldTransformBlock->TransferMatrix();
-			
 		}
 	}
-	
+
 #ifdef DEBUG
 
 	if (Input::GetInstance()->TriggerKey(DIK_SPACE)) {
@@ -127,7 +139,6 @@ void GameScene::Update() {
 		} else {
 			isDebugCameraActive_ = true;
 		}
-		
 	}
 
 #endif
@@ -142,8 +153,13 @@ void GameScene::Update() {
 
 		camera_.UpdateMatrix();
 	}
-}
 
+	// Check if the death particle animation has finished playing.
+	// If so, mark this scene as finished so main.cpp can switch back to the title.
+	if (deathParticles_ && deathParticles_->isInitialized_ && deathParticles_->IsFinished()) {
+		finished_ = true;
+	}
+}
 
 // =========================
 // Draw
@@ -156,7 +172,7 @@ void GameScene::Draw() {
 	if (deathParticles_) {
 		deathParticles_->Draw();
 	}
-	for (Enemy* enemy:enemies_) {
+	for (Enemy* enemy : enemies_) {
 		enemy->draw();
 	}
 
@@ -182,7 +198,6 @@ void GameScene::GenerateBlocks() {
 	for (uint32_t i = 0; i < numBlockVirtical; i++) {
 
 		worldTransformBlocks_[i].resize(numBlockHorizontal);
-
 	}
 	for (uint32_t i = 0; i < numBlockVirtical; i++) {
 
@@ -201,7 +216,6 @@ void GameScene::GenerateBlocks() {
 			worldTransformBlocks_[i][j]->translation_ = blockPosition;
 		}
 	}
-
 }
 
 void GameScene::CheckAllCollisions() {
@@ -212,13 +226,16 @@ void GameScene::CheckAllCollisions() {
 	for (Enemy* enemy : enemies_) {
 		aabb2 = enemy->GetAABB();
 		if (aabb1.min.x <= aabb2.max.x && aabb1.max.x >= aabb2.min.x && aabb1.min.y <= aabb2.max.y && aabb1.max.y >= aabb2.min.y) {
+			player_->onCollision(enemy);
 			if (deathParticles_->IsFinished() || !deathParticles_->isInitialized_) {
 				Vector3 pos = player_->GetWorldPosition();
 				deathParticles_->Initialize(deathParticlesModel_, textureHandlePlayer_, &camera_, pos);
 			}
 		}
 	}
-} // =========================
+}
+
+// =========================
 // Destructor
 // =========================
 GameScene::~GameScene() {
@@ -230,7 +247,7 @@ GameScene::~GameScene() {
 	delete skydome_;
 	delete deathParticles_;
 	delete deathParticlesModel_;
-	for (Enemy* enemy : enemies_){
+	for (Enemy* enemy : enemies_) {
 		delete enemy;
 	}
 	delete mapchipField_;
@@ -240,6 +257,5 @@ GameScene::~GameScene() {
 			delete worldTransformBlock;
 		}
 	}
-	
 	worldTransformBlocks_.clear();
 }
