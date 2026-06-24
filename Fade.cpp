@@ -3,7 +3,9 @@
 
 using namespace KamataEngine;
 
-void Fade::Initialize(uint32_t textureHandle) {
+void Fade::Initialize() {
+
+	uint32_t textureHandle = TextureManager::Load("./Resources/white1x1.png");
 
 	sprite_ = Sprite::Create(textureHandle, {0.0f, 0.0f});
 

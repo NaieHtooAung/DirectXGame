@@ -4,7 +4,7 @@
 class Fade {
 
 public:
-	void Initialize(uint32_t textureHandle);
+	void Initialize();
 	void Update();
 	void Draw();
 	

@@ -84,6 +84,11 @@ void GameScene::Initialize() {
 	camera_.UpdateMatrix();
 
 	GenerateBlocks();
+
+	// FADE
+	fade_ = new Fade();
+	fade_->Initialize();
+	fade_->Start(Fade::Status::FadeIn, 1.0f);
 }
 
 // =========================
@@ -91,12 +96,16 @@ void GameScene::Initialize() {
 // =========================
 void GameScene::Update() {
 
+	// フェード更新
+	fade_->Update();
+
 	switch (phase_) {
 
 	case Phase::kFadeIn:
-
-		// fade finished -> start game
-		phase_ = Phase::kPlay;
+		// フェードイン完了でゲーム開始
+		if (fade_->IsFinished()) {
+			phase_ = Phase::kPlay;
+		}
 		break;
 
 	case Phase::kPlay:
@@ -109,24 +118,25 @@ void GameScene::Update() {
 
 		// if player died
 		if (deathParticles_ && deathParticles_->isInitialized_ && !deathParticles_->IsFinished()) {
-
 			phase_ = Phase::kDeath;
 		}
 
 		break;
 
 	case Phase::kDeath:
-
+		// 死亡パーティクル終了後にフェードアウト開始
 		if (deathParticles_ && deathParticles_->IsFinished()) {
-
 			phase_ = Phase::kFadeOut;
+			fade_->Start(Fade::Status::FadeOut, 1.0f);
 		}
 
 		break;
 
 	case Phase::kFadeOut:
-
-		finished_ = true;
+		// フェードアウト完了でシーン終了
+		if (fade_->IsFinished()) {
+			finished_ = true;
+		}
 		break;
 	}
 
@@ -183,12 +193,6 @@ void GameScene::Update() {
 
 		camera_.UpdateMatrix();
 	}
-
-	// Check if the death particle animation has finished playing.
-	// If so, mark this scene as finished so main.cpp can switch back to the title.
-	if (deathParticles_ && deathParticles_->isInitialized_ && deathParticles_->IsFinished()) {
-		finished_ = true;
-	}
 }
 
 // =========================
@@ -217,6 +221,9 @@ void GameScene::Draw() {
 	}
 
 	Model::PostDraw();
+
+	// フェードを最前面に描画
+	fade_->Draw();
 }
 
 void GameScene::GenerateBlocks() {
@@ -277,6 +284,7 @@ GameScene::~GameScene() {
 	delete skydome_;
 	delete deathParticles_;
 	delete deathParticlesModel_;
+	delete fade_;
 	for (Enemy* enemy : enemies_) {
 		delete enemy;
 	}

@@ -16,7 +16,7 @@ void TitleScene::Initialize() {
 	camera_.Initialize();
 
 	fade_ = new Fade();
-	fade_->Initialize(titleTextureHandle_);
+	fade_->Initialize();
 	fade_->Start(Fade::Status::FadeIn, 3.0f);
 	titleTextureHandle_ = TextureManager::Load("./Resources/titleFont/white1x1.png");
 	titleModel_ = Model::CreateFromOBJ("titleFont", true);

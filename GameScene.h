@@ -5,6 +5,7 @@
 #include "MapChipField.h"
 #include "Player.h"
 #include "skydome.h"
+#include "fade.h"
 #include <KamataEngine.h>
 #include <list>
 #include <vector>
@@ -58,4 +59,5 @@ private:
 
 	skydome* skydome_ = nullptr;
 	Player* player_ = nullptr;
+	Fade* fade_ = nullptr;
 };
