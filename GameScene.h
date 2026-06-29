@@ -46,10 +46,12 @@ private:
 	uint32_t textureHandle_ = 0;
 	uint32_t textureHandlePlayer_ = 0;
 	uint32_t textureHandleEnemy_ = 0;
+	uint32_t textureHandleAttack_ = 0;
 	MapChipField* mapchipField_ = nullptr;
 	KamataEngine::Model* blockModel_ = nullptr;
 	KamataEngine::Model* model_ = nullptr;
 	KamataEngine::Model* enemyModel_ = nullptr;
+	KamataEngine::Model* modelAttack_ = nullptr;
 	CameraController* cameraController_ = nullptr;
 	KamataEngine::WorldTransform worldTransform_;
 	KamataEngine::Camera camera_;

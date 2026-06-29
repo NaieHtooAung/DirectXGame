@@ -1,5 +1,6 @@
 #include "mathUti.h"
 
+#include <algorithm>
 #include <cmath>
 
 using namespace KamataEngine;
@@ -44,4 +45,10 @@ Matrix4x4 MakeAffineMatrix(Vector3 scale, Vector3 rotate, Vector3 translate) {
 	matrix.m[3][3] = 1.0f;
 
 	return matrix;
+}
+
+float EaseOut(float start, float end, float t) {
+	t = std::clamp(t, 0.0f, 1.0f);
+	t = 1.0f - (1.0f - t) * (1.0f - t);
+	return start + (end - start) * t;
 }

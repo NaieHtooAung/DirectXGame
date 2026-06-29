@@ -39,12 +39,17 @@ void GameScene::Initialize() {
 
 	model_ = Model::CreateFromOBJ("player", true);
 
+	textureHandleAttack_ = TextureManager::Load("./Resources/hit_effect/hit_effect.png");
+
+	modelAttack_ = Model::CreateFromOBJ("hit_effect", true);
+
 	deathParticlesModel_ = Model::CreateFromOBJ("player", true);
+
 	deathParticles_ = new DeathParticles();
 
 	Vector3 playerPosition = mapchipField_->GetmapChipPositionByIndex(1, 17);
 
-	player_->Initialize(model_, textureHandlePlayer_, &camera_, playerPosition);
+	player_->Initialize(model_, modelAttack_,textureHandlePlayer_, textureHandleAttack_, &camera_, playerPosition);
 
 	player_->setMapChipField(mapchipField_);
 
@@ -52,7 +57,7 @@ void GameScene::Initialize() {
 
 	enemyModel_ = Model::CreateFromOBJ("enemy", true);
 
-	for (int32_t i = 0; i < 3; i++) {
+	for (int32_t i = 0; i < 1; i++) {
 		Enemy* newEnemy = new Enemy();
 		Vector3 enemysPosition = mapchipField_->GetmapChipPositionByIndex(10 + i * 5, 17);
 		newEnemy->Initialize(enemyModel_, textureHandleEnemy_, &camera_, enemysPosition);
@@ -279,6 +284,7 @@ GameScene::~GameScene() {
 
 	delete blockModel_;
 	delete model_;
+	delete modelAttack_;
 	delete debugCamera_;
 	delete player_;
 	delete skydome_;

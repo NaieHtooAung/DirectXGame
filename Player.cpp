@@ -11,12 +11,17 @@
 
 using namespace KamataEngine;
 
-void Player::Initialize(KamataEngine::Model* model, uint32_t textureHandlePlayer, KamataEngine::Camera* camera, Vector3& position) {
+void Player::Initialize(KamataEngine::Model* model, Model* modelAttack, uint32_t textureHandlePlayer, uint32_t textureHandleAttack, KamataEngine::Camera* camera, Vector3& position) {
 
 	assert(model);
 
 	model_ = model;
+
+	modelAttack_ = modelAttack;
+
 	textureHandlePlayer_ = textureHandlePlayer;
+
+	textureHandleAttack_ = textureHandleAttack;
 	camera_ = camera;
 
 	worldTransform_.Initialize();
@@ -26,9 +31,32 @@ void Player::Initialize(KamataEngine::Model* model, uint32_t textureHandlePlayer
 	worldTransform_.scale_ = {1.0f, 1.0f, 1.0f};
 
 	worldTransform_.rotation_.y = std::numbers::pi_v<float> / 2.0f;
+
+	// Effect model shares the player's position/facing but keeps its own scale.
+	worldTransformAttack_.Initialize();
+	worldTransformAttack_.translation_ = worldTransform_.translation_;
+
+	if (lrDirection_ == LRDirection::kRight) {
+		worldTransformAttack_.translation_.x += 0.8f;
+	} else {
+		worldTransformAttack_.translation_.x -= 0.8f;
+	}
+	worldTransformAttack_.rotation_ = worldTransform_.rotation_;
 }
 
-void Player::Update() {
+void Player::BehaviorRootInitialize() {}
+
+void Player::BehaviorAttackInitialize() {
+
+	attackPhase_ = AttackPhase::kSqueeze;
+	squeezeTimer_ = 0.0f;
+	dashTimer_ = 0.0f;
+	recoveryTimer_ = 0.0f;
+
+	wasRunningBeforeAttack_ = std::abs(velocity_.x) > 0.01f;
+}
+
+void Player::BehaviorRootUpdate() {
 	if (isDead_)
 		return;
 
@@ -77,6 +105,133 @@ void Player::Update() {
 		}
 	}
 
+	// Trigger dash with LSHIFT — allowed in air too
+	if (Input::GetInstance()->TriggerKey(DIK_LSHIFT)) {
+		behaviorRequest_ = Behavior::kAttack;
+	}
+}
+
+void Player::BehaviorAttackUpdate() {
+
+	// Movement is applied only during the dash phase.
+	float velocity = 0.0f;
+
+	switch (attackPhase_) {
+
+	case AttackPhase::kSqueeze:
+		AttackSqueezeUpdate();
+		break;
+
+	case AttackPhase::kDash:
+		AttackDashUpdate();
+
+		if (lrDirection_ == LRDirection::kRight) {
+			velocity = kDashSpeed;
+		} else {
+			velocity = -kDashSpeed;
+		}
+		break;
+
+	case AttackPhase::kRecovery:
+		AttackRecoveryUpdate();
+		break;
+	}
+
+	velocity_.x = velocity;
+}
+
+void Player::AttackSqueezeUpdate() {
+	squeezeTimer_ += 1.0f / 60.0f;
+
+	float t = squeezeTimer_ / kSqueezeTime;
+
+	// 予備動作（アンティシペーション）：ダッシュ前に少しタメる
+	// Compress forward (z), bulge vertically (y) — winding up before the dash.
+	worldTransform_.scale_.z = EaseOut(1.0f, 0.3f, t);
+	worldTransform_.scale_.y = EaseOut(1.0f, 1.6f, t);
+
+	if (squeezeTimer_ >= kSqueezeTime) {
+		attackPhase_ = AttackPhase::kDash;
+		dashTimer_ = 0.0f;
+	}
+}
+
+void Player::AttackDashUpdate() {
+
+	dashTimer_ += 1.0f / 60.0f;
+
+	float t = dashTimer_ / kDashTime;
+
+	// Stretch during the dash.
+	worldTransform_.scale_.z = EaseOut(0.3f, 1.3f, t);
+	worldTransform_.scale_.y = EaseOut(1.6f, 0.7f, t);
+
+	if (dashTimer_ >= kDashTime && !Input::GetInstance()->PushKey(DIK_LSHIFT)) {
+
+		attackPhase_ = AttackPhase::kRecovery;
+		recoveryTimer_ = 0.0f;
+	}
+}
+void Player::AttackRecoveryUpdate() {
+
+	recoveryTimer_ += 1.0f / 60.0f;
+
+	float t = recoveryTimer_ / kRecoveryTime;
+
+	worldTransform_.scale_.z = EaseOut(1.3f, 1.0f, t);
+	worldTransform_.scale_.y = EaseOut(0.7f, 1.0f, t);
+
+	if (recoveryTimer_ >= kRecoveryTime) {
+
+		worldTransform_.scale_ = {1.0f, 1.0f, 1.0f};
+
+		if (wasRunningBeforeAttack_) {
+
+			if (lrDirection_ == LRDirection::kRight) {
+				velocity_.x = kLimitRunSpeed;
+			} else {
+				velocity_.x = -kLimitRunSpeed;
+			}
+
+		} else {
+
+			velocity_.x = 0.0f;
+		}
+
+		behaviorRequest_ = Behavior::kRoot;
+	}
+}
+void Player::Update() {
+
+	// Run the current behavior update first
+	switch (behavior_) {
+	case Behavior::kRoot:
+		BehaviorRootUpdate();
+		break;
+	case Behavior::kAttack:
+		BehaviorAttackUpdate();
+		break;
+	default:
+		break;
+	}
+
+	// Then handle any transition request set during this frame's update
+	if (behaviorRequest_ != Behavior::kUnknow) {
+		behavior_ = behaviorRequest_;
+		behaviorRequest_ = Behavior::kUnknow;
+
+		switch (behavior_) {
+		case Behavior::kRoot:
+			BehaviorRootInitialize();
+			break;
+		case Behavior::kAttack:
+			BehaviorAttackInitialize();
+			break;
+		default:
+			break;
+		}
+	}
+
 	if (Input::GetInstance()->TriggerKey(DIK_SPACE) && onground_) {
 		velocity_.y = kJumpAcceleration;
 	}
@@ -100,6 +255,16 @@ void Player::Update() {
 	worldTransform_.matWorld_ = MakeAffineMatrix(worldTransform_.scale_, worldTransform_.rotation_, worldTransform_.translation_);
 
 	worldTransform_.TransferMatrix();
+
+	// トランスフォームの値をコピー
+	// Keep the effect model following the player's position/facing
+	// (its own scale_ is left alone, independent of the squash-stretch above).
+	worldTransformAttack_.translation_ = worldTransform_.translation_;
+	worldTransformAttack_.rotation_ = worldTransform_.rotation_;
+
+	worldTransformAttack_.matWorld_ = MakeAffineMatrix(worldTransformAttack_.scale_, worldTransformAttack_.rotation_, worldTransformAttack_.translation_);
+
+	worldTransformAttack_.TransferMatrix();
 }
 
 Player::AABB Player::GetAABB() {
@@ -121,13 +286,28 @@ Vector3 Player::GetWorldPosition() {
 const WorldTransform& Player::GetWorldTransform() const { return worldTransform_; }
 
 void Player::Draw() {
-	if (isDead_)
+
+	if (isDead_) {
 		return;
+	}
+
 	model_->Draw(worldTransform_, *camera_, textureHandlePlayer_);
+
+	if (behavior_ == Behavior::kAttack && attackPhase_ == AttackPhase::kDash && modelAttack_) {
+
+		modelAttack_->Draw(worldTransformAttack_, *camera_, textureHandleAttack_);
+	}
 }
 
 void Player::onCollision(const Enemy* enemy) {
 	(void)enemy;
+
+	// While dashing, the player is invincible and simply passes through enemies.
+	// NOTE: the enemy itself is not defeated/killed here yet — that's a later step.
+	if (behavior_ == Behavior::kAttack) {
+		return;
+	}
+
 	isDead_ = true;
 }
 
