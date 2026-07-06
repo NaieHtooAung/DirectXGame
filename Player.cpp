@@ -105,9 +105,15 @@ void Player::BehaviorRootUpdate() {
 		}
 	}
 
-	// Trigger dash with LSHIFT — allowed in air too
+	// Trigger dash with LSHIFT — allowed once in air, unlimited on the ground
 	if (Input::GetInstance()->TriggerKey(DIK_LSHIFT)) {
-		behaviorRequest_ = Behavior::kAttack;
+		if (onground_ || !hasAirAttacked_) {
+			behaviorRequest_ = Behavior::kAttack;
+
+			if (!onground_) {
+				hasAirAttacked_ = true;
+			}
+		}
 	}
 }
 
@@ -499,6 +505,7 @@ void Player::TopCollision(const CollisionMapInfo& info) {
 	if (info.isHitDown) {
 		onground_ = true;
 		velocity_.y = 0.0f;
+		hasAirAttacked_ = false; 
 	}
 	if (info.isHitLeft || info.isHitRight) {
 		velocity_.x = 0.0f;

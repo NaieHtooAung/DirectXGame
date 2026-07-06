@@ -48,6 +48,7 @@ public:
 	float turnTimer_ = 0.0f;
 	bool onground_ = true;
 	bool isDead_ = false;
+	bool hasAirAttacked_ = false; 
 	bool isDead() const { return isDead_; }
 	LRDirection lrDirection_ = LRDirection::kRight;
 	Vector3 velocity_ = {0, 0, 0};
