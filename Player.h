@@ -50,6 +50,7 @@ public:
 	bool isDead_ = false;
 	bool hasAirAttacked_ = false; 
 	bool isDead() const { return isDead_; }
+	bool IsAttacking() const { return behavior_ == Behavior::kAttack; }
 	LRDirection lrDirection_ = LRDirection::kRight;
 	Vector3 velocity_ = {0, 0, 0};
 	Vector3 GetWorldPosition();

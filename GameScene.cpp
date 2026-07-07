@@ -49,7 +49,7 @@ void GameScene::Initialize() {
 
 	Vector3 playerPosition = mapchipField_->GetmapChipPositionByIndex(1, 17);
 
-	player_->Initialize(model_, modelAttack_,textureHandlePlayer_, textureHandleAttack_, &camera_, playerPosition);
+	player_->Initialize(model_, modelAttack_, textureHandlePlayer_, textureHandleAttack_, &camera_, playerPosition);
 
 	player_->setMapChipField(mapchipField_);
 
@@ -155,6 +155,16 @@ void GameScene::Update() {
 	skydome_->update();
 	cameraController_->Update();
 	CheckAllCollisions();
+
+	// Remove enemies whose defeat (spin+shrink) animation has finished.
+	enemies_.remove_if([this](Enemy* enemy) {
+		if (enemy->IsDefeatAnimationFinished()) {
+			delete enemy;
+			finished_ = true;
+			return true;
+		}
+		return false;
+	});
 
 	for (std::vector<WorldTransform*>& worldTransformBlockLine : worldTransformBlocks_) {
 		for (WorldTransform* worldTransformBlock : worldTransformBlockLine) {
@@ -266,10 +276,19 @@ void GameScene::CheckAllCollisions() {
 
 	aabb1 = player_->GetAABB();
 	for (Enemy* enemy : enemies_) {
+		// Already dying — skip so it can't be re-triggered or block the player.
+		if (enemy->IsDefeated()) {
+			continue;
+		}
+
 		aabb2 = enemy->GetAABB();
 		if (aabb1.min.x <= aabb2.max.x && aabb1.max.x >= aabb2.min.x && aabb1.min.y <= aabb2.max.y && aabb1.max.y >= aabb2.min.y) {
 			player_->onCollision(enemy);
-			if (deathParticles_->IsFinished() || !deathParticles_->isInitialized_) {
+
+			if (player_->IsAttacking()) {
+				// Player is dashing through the enemy: defeat it instead of dying.
+				enemy->OnDefeated();
+			} else if (deathParticles_->IsFinished() || !deathParticles_->isInitialized_) {
 				Vector3 pos = player_->GetWorldPosition();
 				deathParticles_->Initialize(deathParticlesModel_, textureHandlePlayer_, &camera_, pos);
 			}

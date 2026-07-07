@@ -2,6 +2,7 @@
 #include "Enemy.h"
 #include "MapChipField.h"
 #include "mathUti.h"
+#include <algorithm>
 #include <array>
 #include <cassert>
 #include <numbers>
@@ -21,14 +22,29 @@ void Enemy::Initialize(KamataEngine::Model* model, uint32_t textureHandleEnemy, 
 	worldTransform_.scale_ = {1.0f, 1.0f, 1.0f};
 	worldTransform_.rotation_ = {0.0f, -1.5f, 0.0f};
 	velocity_ = {-kWalkSpeed, 0, 0};
-	
 }
 
 void Enemy::update() {
+	if (isDefeated_) {
+		defeatTimer_ += 1.0f / 60.0f;
+
+		// Pure rotation, no scaling — spins in place on the same axis the
+		// walk-rock uses (proven to read correctly on this model), then
+		// GameScene simply removes it once kDefeatTime is reached.
+		worldTransform_.rotation_.x += kDefeatSpinSpeed * (1.0f / 60.0f);
+
+		worldTransform_.matWorld_ = MakeAffineMatrix(worldTransform_.scale_, worldTransform_.rotation_, worldTransform_.translation_);
+		worldTransform_.TransferMatrix();
+		return; // skip normal walk/gravity/collision while dying
+	}
+
 	walkTimer_ += 1.0f / 60.0f;
 	worldTransform_.translation_.x += velocity_.x;
-	// rotation animation
-	float param = std::sin(walkTimer_ * 3.0f);
+
+	// Rocking animation: one full -kMaxRockAngle -> +kMaxRockAngle -> -kMaxRockAngle
+	// cycle every kWalkAnimationPeriod seconds.
+	float angularSpeed = 2.0f * std::numbers::pi_v<float> / kWalkAnimationPeriod;
+	float param = std::sin(walkTimer_ * angularSpeed);
 	float degree = (param + 1.0f) / 2.0f;
 	float startAngle = -kMaxRockAngle;
 	float endAngle = +kMaxRockAngle;
@@ -61,10 +77,15 @@ void Enemy::update() {
 
 void Enemy::draw() { enemyModel_->Draw(worldTransform_, *camera_, textureHandleEnemy_); }
 
-void Enemy::onCollision(const Player* player) {
+void Enemy::onCollision(const Player* player) { (void)player; }
 
-	(void)player;
-
+void Enemy::OnDefeated() {
+	if (isDefeated_) {
+		return; // already dying, ignore repeated hits
+	}
+	isDefeated_ = true;
+	defeatTimer_ = 0.0f;
+	velocity_ = {0.0f, 0.0f, 0.0f};
 }
 
 void Enemy::CollisionMap(CollisionMapInfo& info) {
@@ -135,6 +156,7 @@ void Enemy::CollisionMapTop(CollisionMapInfo& info) {
 		info.isHitUp = true;
 	}
 }
+
 Vector3 Enemy::GetWorldPosition() {
 	Vector3 worldPos;
 	worldPos.x = worldTransform_.translation_.x;
@@ -150,6 +172,7 @@ Enemy::AABB Enemy::GetAABB() {
 	aabb.max = {worldPos.x + kWidth / 2.0f, worldPos.y + kHeight / 2.0f, worldPos.z};
 	return aabb;
 }
+
 void Enemy::CollisionMapRight(CollisionMapInfo& info) {
 	if (info.velocityAfterCollision.x <= 0)
 		return;

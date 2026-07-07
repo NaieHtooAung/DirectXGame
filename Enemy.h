@@ -8,7 +8,7 @@ public:
 	float walkTimer_ = 0.0f;
 	static inline const float kWalkAnimationPeriod = 1.0f; // seconds per cycle
 	static inline const float kMaxRockAngle = 15.0f;       // degrees of rock
-	
+
 	Enemy();
 	struct AABB {
 		Vector3 min;
@@ -24,10 +24,19 @@ public:
 	void setMapChipField(MapChipField* mapChipField) { mapChipField_ = mapChipField; }
 	void onCollision(const Player* player);
 
+	// Call when the player's attack defeats this enemy. Starts the
+	// spin-and-shrink death animation; safe to call more than once.
+	void OnDefeated();
+	// True the instant OnDefeated() is called (enemy should stop acting as a threat).
+	bool IsDefeated() const { return isDefeated_; }
+	// True once the death animation has fully played out — GameScene should
+	// delete and remove this enemy when this returns true.
+	bool IsDefeatAnimationFinished() const { return isDefeated_ && defeatTimer_ >= kDefeatTime; }
+
 private:
 	// Collision corners
 	enum Corner { kRightBottom, kLeftBottom, kRightTop, kLeftTop, kNumCorner };
-	
+
 	struct CollisionMapInfo {
 		bool isHitDown = false;
 		bool isHitUp = false;
@@ -53,6 +62,12 @@ private:
 
 	Vector3 velocity_ = {0.0f, 0.0f, 0.0f};
 	bool onGround_ = false;
+
+	// Defeat / death animation state
+	bool isDefeated_ = false;
+	float defeatTimer_ = 0.0f;
+	static inline const float kDefeatTime = 0.5f;       // seconds spent spinning before it vanishes
+	static inline const float kDefeatSpinSpeed = 25.0f; // radians/sec while dying (same axis as the walk rock)
 
 	static inline const float kGravityAcceleration = 0.05f;
 	static inline const float kLimitFallSpeed = 0.5f;
