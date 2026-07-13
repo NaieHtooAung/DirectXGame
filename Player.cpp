@@ -56,6 +56,15 @@ void Player::BehaviorAttackInitialize() {
 	wasRunningBeforeAttack_ = std::abs(velocity_.x) > 0.01f;
 }
 
+void Player::BehaviorKnockbackInitialize() {
+	knockbackPhase_ = KnockbackPhase::kBlast;
+	knockbackTimer_ = 0.0f;
+
+	// 弾き飛ばされる方向は、自キャラが向いている方向と逆(押し返されるイメージ)。
+	float direction = (lrDirection_ == LRDirection::kRight) ? -1.0f : 1.0f;
+	velocity_.x = direction * kKnockbackBlastSpeed;
+}
+
 void Player::BehaviorRootUpdate() {
 	if (isDead_)
 		return;
@@ -207,7 +216,43 @@ void Player::AttackRecoveryUpdate() {
 		behaviorRequest_ = Behavior::kRoot;
 	}
 }
+
+void Player::BehaviorKnockbackUpdate() {
+	knockbackTimer_ += 1.0f / 60.0f;
+
+	switch (knockbackPhase_) {
+	case KnockbackPhase::kBlast:
+		// 「強い初速で弾き飛ばされる」フェーズ: 減衰させながら弾かれ続ける
+		velocity_.x *= (1.0f - kAttenuation);
+
+		if (knockbackTimer_ >= kKnockbackBlastTime) {
+			knockbackPhase_ = KnockbackPhase::kRecover;
+			knockbackTimer_ = 0.0f;
+		}
+		break;
+
+	case KnockbackPhase::kRecover:
+		// 「移動が停止し、体勢を立て直す」フェーズ: 完全に止まるまで減速する
+		velocity_.x *= (1.0f - kAttenuation);
+
+		if (knockbackTimer_ >= kKnockbackRecoverTime) {
+			velocity_.x = 0.0f;
+			behaviorRequest_ = Behavior::kRoot;
+		}
+		break;
+	}
+}
+
 void Player::Update() {
+
+	// 外部からのノックバックリクエストを処理
+	// (毎フレーム更新の先頭で処理することで、他のビヘイビアへの移行リクエストと
+	//  競合する場合でも必ずノックバックを優先させる)
+	if (knockbackRequested_) {
+		behaviorRequest_ = Behavior::kKnockback;
+		// フラグをリセット
+		knockbackRequested_ = false;
+	}
 
 	// Run the current behavior update first
 	switch (behavior_) {
@@ -216,6 +261,9 @@ void Player::Update() {
 		break;
 	case Behavior::kAttack:
 		BehaviorAttackUpdate();
+		break;
+	case Behavior::kKnockback:
+		BehaviorKnockbackUpdate();
 		break;
 	default:
 		break;
@@ -232,6 +280,9 @@ void Player::Update() {
 			break;
 		case Behavior::kAttack:
 			BehaviorAttackInitialize();
+			break;
+		case Behavior::kKnockback:
+			BehaviorKnockbackInitialize();
 			break;
 		default:
 			break;
@@ -310,6 +361,19 @@ void Player::onCollision(const Enemy* enemy) {
 
 	// While dashing, the player is invincible and simply passes through enemies.
 	// NOTE: the enemy itself is not defeated/killed here yet — that's a later step.
+	if (behavior_ == Behavior::kAttack) {
+		return;
+	}
+
+	isDead_ = true;
+}
+
+void Player::onCollision(const ShieldEnemy* enemy) {
+	(void)enemy;
+
+	// Same invincibility rule as Enemy: dashing passes through safely.
+	// Whether the ShieldEnemy itself guards or dies is decided separately,
+	// inside ShieldEnemy::onCollision(Player*).
 	if (behavior_ == Behavior::kAttack) {
 		return;
 	}
@@ -505,7 +569,7 @@ void Player::TopCollision(const CollisionMapInfo& info) {
 	if (info.isHitDown) {
 		onground_ = true;
 		velocity_.y = 0.0f;
-		hasAirAttacked_ = false; 
+		hasAirAttacked_ = false;
 	}
 	if (info.isHitLeft || info.isHitRight) {
 		velocity_.x = 0.0f;

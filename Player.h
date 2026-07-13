@@ -6,6 +6,7 @@ using namespace KamataEngine;
 
 class MapChipField;
 class Enemy;
+class ShieldEnemy;
 class Player {
 public:
 	enum class LRDirection {
@@ -22,13 +23,22 @@ public:
 		kNumCorner
 
 	};
-	enum class Behavior { kRoot, kAttack, kUnknow };
+	// kKnockback: ShieldEnemyのガードに成功した時などに、外部から要求される
+	// ノックバックビヘイビア。挙動は攻撃(kAttack)と同様にBehaviorRequestで
+	// 遷移させる。
+	enum class Behavior { kRoot, kAttack, kKnockback, kUnknow };
 
 	// Sub-phases of the dash (kAttack) behavior.
 	enum class AttackPhase {
 		kSqueeze,  // anticipation squash just before the dash fires
 		kDash,     // the actual dash movement (stretched, invincible)
 		kRecovery, // easing scale/speed back to normal
+	};
+
+	// Sub-phases of the knockback (kKnockback) behavior.
+	enum class KnockbackPhase {
+		kBlast,   // 「強い初速で弾き飛ばされる」フェーズ
+		kRecover, // 「移動が停止し、体勢を立て直す」フェーズ
 	};
 
 	Behavior behavior_ = Behavior::kRoot;
@@ -44,13 +54,21 @@ public:
 	static inline const float kSqueezeTime = 0.1f;
 	static inline const float kRecoveryTime = 0.1f;
 
+	KnockbackPhase knockbackPhase_ = KnockbackPhase::kBlast;
+	float knockbackTimer_ = 0.0f;
+	static inline const float kKnockbackBlastTime = 0.15f;   // 弾き飛ばされるフェーズの時間(秒)
+	static inline const float kKnockbackRecoverTime = 0.25f; // 体勢を立て直すフェーズの時間(秒)
+	static inline const float kKnockbackBlastSpeed = 0.5f;   // 弾き飛ばされる初速
+
 	float turnFirstRotationY_ = 0.0f;
 	float turnTimer_ = 0.0f;
 	bool onground_ = true;
 	bool isDead_ = false;
-	bool hasAirAttacked_ = false; 
+	bool hasAirAttacked_ = false;
 	bool isDead() const { return isDead_; }
 	bool IsAttacking() const { return behavior_ == Behavior::kAttack; }
+	// ShieldEnemy側からガード成否を判定するために公開するgetter。
+	LRDirection GetLRDirection() const { return lrDirection_; }
 	LRDirection lrDirection_ = LRDirection::kRight;
 	Vector3 velocity_ = {0, 0, 0};
 	Vector3 GetWorldPosition();
@@ -103,6 +121,10 @@ public:
 	void AttackDashUpdate();
 	void AttackRecoveryUpdate();
 
+	// ノックバックビヘイビアの初期化・毎フレーム更新
+	void BehaviorKnockbackInitialize();
+	void BehaviorKnockbackUpdate();
+
 	void Update();
 
 	void Draw();
@@ -112,6 +134,13 @@ public:
 	void CollisionMap(CollisionMapInfo& info);
 
 	void onCollision(const Enemy* enemy);
+	// ShieldEnemyとの衝突応答。Enemy版と同じルール(攻撃中は無敵で素通り、
+	// それ以外の時に触れたら死ぬ)をそのまま適用する。
+	void onCollision(const ShieldEnemy* enemy);
+
+	// 外部(ShieldEnemyなど)からノックバックを要求するための関数。
+	// フラグを立てるだけで、実際のビヘイビア切り替えはUpdate()の先頭で処理する。
+	void RequestKnockback() { knockbackRequested_ = true; }
 
 	Vector3 CornerPosition(const Vector3& center, Corner corner);
 
@@ -137,4 +166,8 @@ private:
 	uint32_t textureHandleAttack_ = 0;
 
 	Camera* camera_ = nullptr;
+
+	// ノックバックのリクエストフラグ。trueの間、次のUpdate()の先頭で
+	// behaviorRequest_ = Behavior::kKnockback に変換されクリアされる。
+	bool knockbackRequested_ = false;
 };

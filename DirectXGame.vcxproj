@@ -168,11 +168,13 @@
     <ClCompile Include="Enemy.cpp" />
     <ClCompile Include="Fade.cpp" />
     <ClCompile Include="GameScene.cpp" />
+    <ClCompile Include="Guardeffect.cpp" />
     <ClCompile Include="HitEffect.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MapChipFIeld.cpp" />
     <ClCompile Include="mathUti.cpp" />
     <ClCompile Include="Player.cpp" />
+    <ClCompile Include="ShieldEnemy.cpp" />
     <ClCompile Include="skydome.cpp" />
     <ClCompile Include="TitleScene.cpp" />
   </ItemGroup>
@@ -279,10 +281,12 @@
     <ClInclude Include="Enemy.h" />
     <ClInclude Include="Fade.h" />
     <ClInclude Include="GameScene.h" />
+    <ClInclude Include="Guardeffect.h" />
     <ClInclude Include="HitEffect.h" />
     <ClInclude Include="MapChipField.h" />
     <ClInclude Include="mathUti.h" />
     <ClInclude Include="Player.h" />
+    <ClInclude Include="ShieldEnemy.h" />
     <ClInclude Include="skydome.h" />
     <ClInclude Include="TitleScene.h" />
   </ItemGroup>

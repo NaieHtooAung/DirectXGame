@@ -2,12 +2,13 @@
 #include "CameraController.h"
 #include "DeathParticles.h"
 #include "Enemy.h"
+#include "GuardEffect.h"
+#include "HitEffect.h"
 #include "MapChipField.h"
 #include "Player.h"
-#include "skydome.h"
+#include "ShieldEnemy.h"
 #include "fade.h"
-#include <list>
-#include "HitEffect.h"
+#include "skydome.h"
 #include <KamataEngine.h>
 #include <list>
 #include <vector>
@@ -33,7 +34,9 @@ public:
 private:
 	std::vector<std::vector<KamataEngine::WorldTransform*>> worldTransformBlocks_;
 	std::list<HitEffect*> hitEffects_;
+	std::list<GuardEffect*> guardEffects_;
 	std::list<Enemy*> enemies_;
+	std::list<ShieldEnemy*> shieldEnemies_;
 	bool isDebugCameraActive_ = false;
 
 	enum class Phase {
@@ -49,14 +52,18 @@ private:
 	uint32_t textureHandle_ = 0;
 	uint32_t textureHandlePlayer_ = 0;
 	uint32_t textureHandleEnemy_ = 0;
+	uint32_t textureHandleShieldEnemy_ = 0;
 	uint32_t textureHandleAttack_ = 0;
 	uint32_t textureHandleHitEffect_ = 0;
+	uint32_t textureHandleGuardEffect_ = 0;
 	MapChipField* mapchipField_ = nullptr;
 	KamataEngine::Model* blockModel_ = nullptr;
 	KamataEngine::Model* model_ = nullptr;
 	KamataEngine::Model* enemyModel_ = nullptr;
+	KamataEngine::Model* shieldEnemyModel_ = nullptr;
 	KamataEngine::Model* modelAttack_ = nullptr;
 	KamataEngine::Model* hitEffectmodel_ = nullptr;
+	KamataEngine::Model* guardEffectModel_ = nullptr;
 	CameraController* cameraController_ = nullptr;
 	KamataEngine::WorldTransform worldTransform_;
 	KamataEngine::Camera camera_;

@@ -1,9 +1,11 @@
 #include "GameScene.h"
 #include "CameraController.h"
 #include "Enemy.h"
+#include "GuardEffect.h"
 #include "HitEffect.h"
 #include "MapChipField.h"
 #include "Player.h"
+#include "ShieldEnemy.h"
 #include "mathUti.h"
 #include "skydome.h"
 #include <cmath>
@@ -66,6 +68,21 @@ void GameScene::Initialize() {
 		enemies_.push_back(newEnemy);
 	}
 
+	// SHIELD ENEMY (正面から倒せない敵)
+	// モデルの差し替え: 専用モデルデータが用意できたら、下の2行を
+	// 専用OBJ/テクスチャの読み込みに差し替えること。差し替え前でも
+	// 一旦enemyモデルを流用してビルド・実行確認できるようにしてある。
+	textureHandleShieldEnemy_ = TextureManager::Load("./Resources/shieldEnemy/shieldEnemy.png");
+	shieldEnemyModel_ = Model::CreateFromOBJ("shieldEnemy", true);
+
+	for (int32_t i = 0; i < 1; i++) {
+		ShieldEnemy* newShieldEnemy = new ShieldEnemy();
+		Vector3 shieldEnemyPosition = mapchipField_->GetmapChipPositionByIndex(20 + i * 5, 17);
+		newShieldEnemy->Initialize(shieldEnemyModel_, textureHandleShieldEnemy_, &camera_, shieldEnemyPosition);
+		newShieldEnemy->setMapChipField(mapchipField_);
+		shieldEnemies_.push_back(newShieldEnemy);
+	}
+
 	// CAMERA CONTROLLER
 	cameraController_ = new CameraController();
 
@@ -103,6 +120,13 @@ void GameScene::Initialize() {
 	hitEffectmodel_ = Model::CreateFromOBJ("deathParticle", true);
 	HitEffect::SetModel(hitEffectmodel_);
 	HitEffect::SetCamera(&camera_);
+
+	// GUARD EFFECT (burst played when a ShieldEnemy guards an attack)
+	// 手順はHitEffectとほぼ同じ。専用テクスチャが用意できたら差し替えること。
+	textureHandleGuardEffect_ = TextureManager::Load("./Resources/deathParticle/white1x1.png");
+	guardEffectModel_ = Model::CreateFromOBJ("deathParticle", true);
+	GuardEffect::SetModel(guardEffectModel_);
+	GuardEffect::SetCamera(&camera_);
 }
 
 // =========================
@@ -128,6 +152,9 @@ void GameScene::Update() {
 
 		for (Enemy* enemy : enemies_) {
 			enemy->update();
+		}
+		for (ShieldEnemy* shieldEnemy : shieldEnemies_) {
+			shieldEnemy->update();
 		}
 
 		// if player died
@@ -158,6 +185,9 @@ void GameScene::Update() {
 	for (Enemy* enemy : enemies_) {
 		enemy->update();
 	}
+	for (ShieldEnemy* shieldEnemy : shieldEnemies_) {
+		shieldEnemy->update();
+	}
 	if (deathParticles_) {
 		deathParticles_->Update();
 	}
@@ -170,6 +200,16 @@ void GameScene::Update() {
 		if (enemy->IsDefeatAnimationFinished()) {
 			delete enemy;
 			finished_ = true;
+			return true;
+		}
+		return false;
+	});
+
+	// Remove shield enemies whose defeat animation has finished (only reached
+	// if they were hit from a non-guardable angle).
+	shieldEnemies_.remove_if([this](ShieldEnemy* shieldEnemy) {
+		if (shieldEnemy->IsDefeatAnimationFinished()) {
+			delete shieldEnemy;
 			return true;
 		}
 		return false;
@@ -201,6 +241,18 @@ void GameScene::Update() {
 	hitEffects_.remove_if([](HitEffect* hitEffect) {
 		if (hitEffect->IsDead()) {
 			delete hitEffect;
+			return true;
+		}
+		return false;
+	});
+
+	// Update all active guard effects, then remove any whose デス状態 has been reached.
+	for (GuardEffect* guardEffect : guardEffects_) {
+		guardEffect->Update();
+	}
+	guardEffects_.remove_if([](GuardEffect* guardEffect) {
+		if (guardEffect->IsDead()) {
+			delete guardEffect;
 			return true;
 		}
 		return false;
@@ -245,10 +297,18 @@ void GameScene::Draw() {
 	for (Enemy* enemy : enemies_) {
 		enemy->draw();
 	}
+	for (ShieldEnemy* shieldEnemy : shieldEnemies_) {
+		shieldEnemy->draw();
+	}
 
 	// Draw all active hit effects.
 	for (HitEffect* hitEffect : hitEffects_) {
 		hitEffect->Draw();
+	}
+
+	// Draw all active guard effects.
+	for (GuardEffect* guardEffect : guardEffects_) {
+		guardEffect->Draw();
 	}
 
 	for (std::vector<WorldTransform*>& worldTransformBlockLine : worldTransformBlocks_) {
@@ -299,8 +359,10 @@ void GameScene::GenerateBlocks() {
 void GameScene::CheckAllCollisions() {
 	Player::AABB aabb1;
 	Enemy::AABB aabb2;
+	ShieldEnemy::AABB aabb3;
 
 	aabb1 = player_->GetAABB();
+
 	for (Enemy* enemy : enemies_) {
 		// Already dying — skip so it can't be re-triggered or block the player.
 		if (enemy->IsDefeated()) {
@@ -322,6 +384,31 @@ void GameScene::CheckAllCollisions() {
 			}
 		}
 	}
+
+	for (ShieldEnemy* shieldEnemy : shieldEnemies_) {
+		// Already dying — skip so it can't be re-triggered or block the player.
+		if (shieldEnemy->IsDefeated()) {
+			continue;
+		}
+
+		aabb3 = shieldEnemy->GetAABB();
+		if (aabb1.min.x <= aabb3.max.x && aabb1.max.x >= aabb3.min.x && aabb1.min.y <= aabb3.max.y && aabb1.max.y >= aabb3.min.y) {
+			// プレイヤー側の応答: 攻撃中(ダッシュ中)は無敵で素通り、
+			// それ以外の時に触れたら死ぬ。ガードされるかどうかはこの結果に影響しない。
+			player_->onCollision(shieldEnemy);
+
+			// 敵側の応答: 攻撃中でなければ何もしない。攻撃中なら、正面からの
+			// 攻撃はガード(デス回避+ノックバック要求)、それ以外はデス演出へ。
+			// NOTE: playerはconstポインタではない。ShieldEnemy::onCollision内で
+			// player->RequestKnockback()を呼びプレイヤー側のフラグを書き換えるため。
+			shieldEnemy->onCollision(player_);
+
+			// ガードが成功した直後であれば、GuardEffectを1回だけ生成する。
+			if (shieldEnemy->ConsumeGuardEffectRequest()) {
+				guardEffects_.push_back(GuardEffect::Create(textureHandleGuardEffect_, shieldEnemy->GetWorldPosition()));
+			}
+		}
+	}
 }
 
 // =========================
@@ -339,11 +426,19 @@ GameScene::~GameScene() {
 	delete deathParticlesModel_;
 	delete fade_;
 	delete hitEffectmodel_;
+	delete guardEffectModel_;
+	delete shieldEnemyModel_;
 	for (HitEffect* hitEffect : hitEffects_) {
 		delete hitEffect;
 	}
+	for (GuardEffect* guardEffect : guardEffects_) {
+		delete guardEffect;
+	}
 	for (Enemy* enemy : enemies_) {
 		delete enemy;
+	}
+	for (ShieldEnemy* shieldEnemy : shieldEnemies_) {
+		delete shieldEnemy;
 	}
 	delete mapchipField_;
 	for (std::vector<WorldTransform*>& worldTransformBlockLine : worldTransformBlocks_) {
