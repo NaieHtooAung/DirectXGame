@@ -6,6 +6,8 @@
 #include "Player.h"
 #include "skydome.h"
 #include "fade.h"
+#include <list>
+#include "HitEffect.h"
 #include <KamataEngine.h>
 #include <list>
 #include <vector>
@@ -30,6 +32,7 @@ public:
 
 private:
 	std::vector<std::vector<KamataEngine::WorldTransform*>> worldTransformBlocks_;
+	std::list<HitEffect*> hitEffects_;
 	std::list<Enemy*> enemies_;
 	bool isDebugCameraActive_ = false;
 
@@ -47,11 +50,13 @@ private:
 	uint32_t textureHandlePlayer_ = 0;
 	uint32_t textureHandleEnemy_ = 0;
 	uint32_t textureHandleAttack_ = 0;
+	uint32_t textureHandleHitEffect_ = 0;
 	MapChipField* mapchipField_ = nullptr;
 	KamataEngine::Model* blockModel_ = nullptr;
 	KamataEngine::Model* model_ = nullptr;
 	KamataEngine::Model* enemyModel_ = nullptr;
 	KamataEngine::Model* modelAttack_ = nullptr;
+	KamataEngine::Model* hitEffectmodel_ = nullptr;
 	CameraController* cameraController_ = nullptr;
 	KamataEngine::WorldTransform worldTransform_;
 	KamataEngine::Camera camera_;
@@ -62,4 +67,5 @@ private:
 	skydome* skydome_ = nullptr;
 	Player* player_ = nullptr;
 	Fade* fade_ = nullptr;
+	HitEffect* hitEffect_ = nullptr;
 };

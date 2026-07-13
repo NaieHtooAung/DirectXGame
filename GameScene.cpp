@@ -1,6 +1,7 @@
 #include "GameScene.h"
 #include "CameraController.h"
 #include "Enemy.h"
+#include "HitEffect.h"
 #include "MapChipField.h"
 #include "Player.h"
 #include "mathUti.h"
@@ -94,6 +95,14 @@ void GameScene::Initialize() {
 	fade_ = new Fade();
 	fade_->Initialize();
 	fade_->Start(Fade::Status::FadeIn, 1.0f);
+
+	// HIT EFFECT (white dot burst on enemy defeat)
+	// NOTE: hitEffects_ is a std::list<HitEffect*> MEMBER declared in GameScene.h.
+	// Do not redeclare it locally here - that would shadow the member and never get used.
+	textureHandleHitEffect_ = TextureManager::Load("./Resources/deathParticle/white1x1.png");
+	hitEffectmodel_ = Model::CreateFromOBJ("deathParticle", true);
+	HitEffect::SetModel(hitEffectmodel_);
+	HitEffect::SetCamera(&camera_);
 }
 
 // =========================
@@ -185,6 +194,18 @@ void GameScene::Update() {
 		}
 	}
 
+	// Update all active hit effects, then remove any that have finished playing.
+	for (HitEffect* hitEffect : hitEffects_) {
+		hitEffect->Update();
+	}
+	hitEffects_.remove_if([](HitEffect* hitEffect) {
+		if (hitEffect->IsFinished()) {
+			delete hitEffect;
+			return true;
+		}
+		return false;
+	});
+
 #ifdef DEBUG
 
 	if (Input::GetInstance()->TriggerKey(DIK_SPACE)) {
@@ -223,6 +244,11 @@ void GameScene::Draw() {
 	}
 	for (Enemy* enemy : enemies_) {
 		enemy->draw();
+	}
+
+	// Draw all active hit effects.
+	for (HitEffect* hitEffect : hitEffects_) {
+		hitEffect->Draw();
 	}
 
 	for (std::vector<WorldTransform*>& worldTransformBlockLine : worldTransformBlocks_) {
@@ -288,6 +314,8 @@ void GameScene::CheckAllCollisions() {
 			if (player_->IsAttacking()) {
 				// Player is dashing through the enemy: defeat it instead of dying.
 				enemy->OnDefeated();
+				// Static factory: allocates + initializes a new HitEffect, added to the active list.
+				hitEffects_.push_back(HitEffect::Create(textureHandleHitEffect_, enemy->GetWorldPosition()));
 			} else if (deathParticles_->IsFinished() || !deathParticles_->isInitialized_) {
 				Vector3 pos = player_->GetWorldPosition();
 				deathParticles_->Initialize(deathParticlesModel_, textureHandlePlayer_, &camera_, pos);
@@ -310,6 +338,10 @@ GameScene::~GameScene() {
 	delete deathParticles_;
 	delete deathParticlesModel_;
 	delete fade_;
+	delete hitEffectmodel_;
+	for (HitEffect* hitEffect : hitEffects_) {
+		delete hitEffect;
+	}
 	for (Enemy* enemy : enemies_) {
 		delete enemy;
 	}
