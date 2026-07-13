@@ -15,11 +15,25 @@ public:
 	void Update();
 	void Draw();
 
-	bool IsFinished() const { return isFinished_; }
+	// デスフラグの取得
+	bool IsDead() const { return state_ == State::kDead; }
 
 private:
 	// 発生位置を指定してエフェクトを再生開始する
 	void Initialize(uint32_t textureHandle, const Vector3& position);
+
+	// 状態遷移
+	enum class State {
+		kSpread, // 拡大アニメーション中
+		kFade,   // フェードアウト中
+		kDead,   // 消滅(削除待ち)
+	};
+
+	void UpdateSpread();
+	void UpdateFade();
+
+	// 状態切り替え機構(カウンタもリセットする)
+	void ChangeState(State newState);
 
 	static const int32_t kNumEllipse = 3; // 楕円の個数
 
@@ -34,11 +48,22 @@ private:
 	// 楕円のワールドトランスフォーム
 	std::array<WorldTransform, kNumEllipse> ellipseWorldTransforms_;
 
-	float timer_ = 0.0f;
-	float duration_ = 0.2f; // 表示時間(秒)
+	// 現在の状態
+	State state_ = State::kDead;
 
-	static constexpr float kEllipseWidth = 0.3f;  // 楕円の幅
+	// 状態内カウンタ(加算していき、状態ごとの継続時間に達したら遷移する)
+	float counter_ = 0.0f;
+
+	// アルファ値(フェード中に変化させる)
+	float alpha_ = 1.0f;
+
+	static constexpr float kDeltaTime = 1.0f / 60.0f;
+
+	static constexpr float kSpreadDuration = 0.10f; // スプレッドの継続時間(秒)
+	static constexpr float kFadeDuration = 0.15f;   // フェードの継続時間(秒)
+
+	static constexpr float kSpreadStartScaleRate = 0.2f; // スプレッド開始時点のスケール倍率
+
+	static constexpr float kEllipseWidth = 0.5f;  // 楕円の幅
 	static constexpr float kEllipseLength = 6.0f; // 楕円の長さ
-
-	bool isFinished_ = true;
 };

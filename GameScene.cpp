@@ -194,12 +194,12 @@ void GameScene::Update() {
 		}
 	}
 
-	// Update all active hit effects, then remove any that have finished playing.
+	// Update all active hit effects, then remove any whose デス状態 (dead state) has been reached.
 	for (HitEffect* hitEffect : hitEffects_) {
 		hitEffect->Update();
 	}
 	hitEffects_.remove_if([](HitEffect* hitEffect) {
-		if (hitEffect->IsFinished()) {
+		if (hitEffect->IsDead()) {
 			delete hitEffect;
 			return true;
 		}
