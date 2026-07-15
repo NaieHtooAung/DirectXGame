@@ -11,11 +11,12 @@ public:
 	static inline const float kWalkAnimationPeriod = 1.0f; // seconds per walk-rock cycle
 	static inline const float kMaxRockAngle = 15.0f;       // degrees of walk-rock
 
-	// 敵側の状態遷移(歩行 / デス演出 / ガードリアクション)
+	// 敵側の状態遷移(歩行 / デス演出)
+	// NOTE: ガード成功時は専用のアニメーション状態を持たない。GuardEffectと
+	// ノックバック要求だけを行い、見た目はそのまま歩行状態を継続する。
 	enum class Behavior {
 		kWalk,   // 歩行状態
 		kDefeat, // デス演出
-		kGuard,  // ガードリアクション
 	};
 
 	ShieldEnemy();
@@ -43,6 +44,11 @@ public:
 	// ガードが成功した瞬間に一度だけtrueを返す。
 	// GameScene側でこれを見てGuardEffectを生成したら、フラグは自動的に消費(false)される。
 	bool ConsumeGuardEffectRequest();
+
+	// 実際に撃破された(ガードできずデス演出に入った)瞬間に一度だけtrueを返す。
+	// GameScene側でこれを見てHitEffect(通常の撃破エフェクト)を生成したら、
+	// フラグは自動的に消費(false)される。
+	bool ConsumeHitEffectRequest();
 
 	// 既にデス演出に入っているか(GameScene側の重複判定・貫通に使う)
 	bool IsDefeated() const { return behavior_ == Behavior::kDefeat; }
@@ -72,7 +78,6 @@ private:
 	void OnDefeated();
 	void UpdateWalk();
 	void UpdateDefeat();
-	void UpdateGuard();
 
 	MapChipField* mapChipField_ = nullptr;
 	WorldTransform worldTransform_;
@@ -84,6 +89,8 @@ private:
 	bool onGround_ = false;
 	// rotation_.y == +1.5fで右向き、-1.5fで左向き(Enemyの回転値と対応させてある)
 	bool facingRight_ = false;
+	
+	float facingBaseAngleY_ = -1.5f;
 
 	float walkTimer_ = 0.0f;
 
@@ -94,11 +101,9 @@ private:
 	static inline const float kDefeatTime = 0.5f;
 	static inline const float kDefeatSpinSpeed = 25.0f;
 
-	// ガードリアクション(正面から攻撃された場合)
-	float guardTimer_ = 0.0f;
-	static inline const float kGuardTime = 0.4f;       // ガード演出の継続時間(秒)
-	static inline const float kGuardRockAngle = 20.0f; // のけぞりの最大角度(度)
-	bool guardEffectRequested_ = false;                // GuardEffect生成待ちフラグ(GameScene側が消費する)
+	// ガード成功時に生成するGuardEffect用の一度きりのフラグ
+	bool guardEffectRequested_ = false; // GuardEffect生成待ちフラグ(GameScene側が消費する)
+	bool hitEffectRequested_ = false;   // 撃破時のHitEffect生成待ちフラグ(GameScene側が消費する)
 
 	static inline const float kGravityAcceleration = 0.05f;
 	static inline const float kLimitFallSpeed = 0.5f;

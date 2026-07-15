@@ -123,8 +123,8 @@ void GameScene::Initialize() {
 
 	// GUARD EFFECT (burst played when a ShieldEnemy guards an attack)
 	// 手順はHitEffectとほぼ同じ。専用テクスチャが用意できたら差し替えること。
-	textureHandleGuardEffect_ = TextureManager::Load("./Resources/deathParticle/white1x1.png");
-	guardEffectModel_ = Model::CreateFromOBJ("deathParticle", true);
+	textureHandleGuardEffect_ = TextureManager::Load("./Resources/ring/ring.png");
+	guardEffectModel_ = Model::CreateFromOBJ("ring", true);
 	GuardEffect::SetModel(guardEffectModel_);
 	GuardEffect::SetCamera(&camera_);
 }
@@ -147,7 +147,8 @@ void GameScene::Update() {
 		break;
 
 	case Phase::kPlay:
-
+		// NOTE: プレイヤー・敵の更新はここで1回だけ行う。
+		// (以前はswitchの外でもう一度呼んでいて二重更新になっていたバグを修正済み)
 		player_->Update();
 
 		for (Enemy* enemy : enemies_) {
@@ -174,20 +175,13 @@ void GameScene::Update() {
 		break;
 
 	case Phase::kFadeOut:
-		// フェードアウト完了でシーン終了
+		// フェードアウト完了でシーン終了(プレイヤー死亡ルート)
 		if (fade_->IsFinished()) {
 			finished_ = true;
 		}
 		break;
 	}
 
-	player_->Update();
-	for (Enemy* enemy : enemies_) {
-		enemy->update();
-	}
-	for (ShieldEnemy* shieldEnemy : shieldEnemies_) {
-		shieldEnemy->update();
-	}
 	if (deathParticles_) {
 		deathParticles_->Update();
 	}
@@ -199,7 +193,6 @@ void GameScene::Update() {
 	enemies_.remove_if([this](Enemy* enemy) {
 		if (enemy->IsDefeatAnimationFinished()) {
 			delete enemy;
-			finished_ = true;
 			return true;
 		}
 		return false;
@@ -214,6 +207,12 @@ void GameScene::Update() {
 		}
 		return false;
 	});
+
+	// クリア条件: Enemy・ShieldEnemyの両方を倒し切った時だけシーンを終了する。
+	// (以前はEnemyを1体倒しただけでfinished_ = trueにしてしまっていたバグを修正済み)
+	if (enemies_.empty() && shieldEnemies_.empty()) {
+		finished_ = true;
+	}
 
 	for (std::vector<WorldTransform*>& worldTransformBlockLine : worldTransformBlocks_) {
 		for (WorldTransform* worldTransformBlock : worldTransformBlockLine) {
@@ -364,7 +363,6 @@ void GameScene::CheckAllCollisions() {
 	aabb1 = player_->GetAABB();
 
 	for (Enemy* enemy : enemies_) {
-		// Already dying — skip so it can't be re-triggered or block the player.
 		if (enemy->IsDefeated()) {
 			continue;
 		}
@@ -374,11 +372,9 @@ void GameScene::CheckAllCollisions() {
 			player_->onCollision(enemy);
 
 			if (player_->IsAttacking()) {
-				// Player is dashing through the enemy: defeat it instead of dying.
 				enemy->OnDefeated();
-				// Static factory: allocates + initializes a new HitEffect, added to the active list.
 				hitEffects_.push_back(HitEffect::Create(textureHandleHitEffect_, enemy->GetWorldPosition()));
-			} else if (deathParticles_->IsFinished() || !deathParticles_->isInitialized_) {
+			} else if (!deathParticles_->isInitialized_) {
 				Vector3 pos = player_->GetWorldPosition();
 				deathParticles_->Initialize(deathParticlesModel_, textureHandlePlayer_, &camera_, pos);
 			}
@@ -386,31 +382,31 @@ void GameScene::CheckAllCollisions() {
 	}
 
 	for (ShieldEnemy* shieldEnemy : shieldEnemies_) {
-		// Already dying — skip so it can't be re-triggered or block the player.
 		if (shieldEnemy->IsDefeated()) {
 			continue;
 		}
 
 		aabb3 = shieldEnemy->GetAABB();
 		if (aabb1.min.x <= aabb3.max.x && aabb1.max.x >= aabb3.min.x && aabb1.min.y <= aabb3.max.y && aabb1.max.y >= aabb3.min.y) {
-			// プレイヤー側の応答: 攻撃中(ダッシュ中)は無敵で素通り、
-			// それ以外の時に触れたら死ぬ。ガードされるかどうかはこの結果に影響しない。
 			player_->onCollision(shieldEnemy);
 
-			// 敵側の応答: 攻撃中でなければ何もしない。攻撃中なら、正面からの
-			// 攻撃はガード(デス回避+ノックバック要求)、それ以外はデス演出へ。
-			// NOTE: playerはconstポインタではない。ShieldEnemy::onCollision内で
-			// player->RequestKnockback()を呼びプレイヤー側のフラグを書き換えるため。
+			if (!player_->IsAttacking() && !deathParticles_->isInitialized_) {
+				Vector3 pos = player_->GetWorldPosition();
+				deathParticles_->Initialize(deathParticlesModel_, textureHandlePlayer_, &camera_, pos);
+			}
+
 			shieldEnemy->onCollision(player_);
 
-			// ガードが成功した直後であれば、GuardEffectを1回だけ生成する。
 			if (shieldEnemy->ConsumeGuardEffectRequest()) {
 				guardEffects_.push_back(GuardEffect::Create(textureHandleGuardEffect_, shieldEnemy->GetWorldPosition()));
+			}
+
+			if (shieldEnemy->ConsumeHitEffectRequest()) {
+				hitEffects_.push_back(HitEffect::Create(textureHandleHitEffect_, shieldEnemy->GetWorldPosition()));
 			}
 		}
 	}
 }
-
 // =========================
 // Destructor
 // =========================

@@ -22,7 +22,8 @@ void ShieldEnemy::Initialize(KamataEngine::Model* model, uint32_t textureHandleE
 	worldTransform_.Initialize();
 	worldTransform_.translation_ = position;
 	worldTransform_.scale_ = {1.0f, 1.0f, 1.0f};
-	worldTransform_.rotation_ = {0.0f, -1.5f, 0.0f};
+	worldTransform_.rotation_ = {0.0f, 0.0f, 0.0f}; // 実際の値はUpdateWalkが毎フレーム計算する
+	facingBaseAngleY_ = -1.5f;
 	velocity_ = {-kWalkSpeed, 0, 0};
 	facingRight_ = false; // 初期速度が負(=左向き)なのでrotation_.yの-1.5fと対応させる
 	behavior_ = Behavior::kWalk;
@@ -36,9 +37,6 @@ void ShieldEnemy::update() {
 	case Behavior::kDefeat:
 		UpdateDefeat();
 		break;
-	case Behavior::kGuard:
-		UpdateGuard();
-		break;
 	}
 
 	worldTransform_.matWorld_ = MakeAffineMatrix(worldTransform_.scale_, worldTransform_.rotation_, worldTransform_.translation_);
@@ -49,15 +47,18 @@ void ShieldEnemy::UpdateWalk() {
 	walkTimer_ += 1.0f / 60.0f;
 	worldTransform_.translation_.x += velocity_.x;
 
-	// 動きのカスタマイズ: Enemyは-kMaxRockAngle -> +kMaxRockAngleの順で揺れるが、
-	// こちらは見た目に合わせて逆向き(+kMaxRockAngle -> -kMaxRockAngle)に揺らしている。
+	
 	float angularSpeed = 2.0f * std::numbers::pi_v<float> / kWalkAnimationPeriod;
 	float param = std::sin(walkTimer_ * angularSpeed);
 	float degree = (param + 1.0f) / 2.0f;
 	float startAngle = +kMaxRockAngle;
 	float endAngle = -kMaxRockAngle;
 	float lerpedDegree = startAngle + (endAngle - startAngle) * degree;
-	worldTransform_.rotation_.x = lerpedDegree * (std::numbers::pi_v<float> / 180.0f);
+	float wagOffset = lerpedDegree * (std::numbers::pi_v<float> / 180.0f);
+
+	worldTransform_.rotation_.x = 0.0f;
+	worldTransform_.rotation_.z = 0.0f;
+	worldTransform_.rotation_.y = facingBaseAngleY_ + wagOffset;
 
 	onGround_ = false;
 
@@ -79,33 +80,6 @@ void ShieldEnemy::UpdateDefeat() {
 	worldTransform_.rotation_.x += kDefeatSpinSpeed * (1.0f / 60.0f);
 }
 
-void ShieldEnemy::UpdateGuard() {
-	guardTimer_ += 1.0f / 60.0f;
-
-	float t = std::clamp(guardTimer_ / kGuardTime, 0.0f, 1.0f);
-
-	// ガード状態: やや下向きから天井向きにのけぞって戻る動きをサイン関数で表現する。
-	// t=0で0度付近、t=0.5あたりで最大角、t=1で0度に戻る山なりのカーブ。
-	float sway = std::sin(t * std::numbers::pi_v<float>) * kGuardRockAngle;
-	worldTransform_.rotation_.x = (-0.15f + sway * (std::numbers::pi_v<float> / 180.0f));
-
-	// ガード中は足を止めておく(横方向には動かさない)
-	onGround_ = false;
-	velocity_.y -= kGravityAcceleration;
-	velocity_.y = std::max(velocity_.y, -kLimitFallSpeed);
-
-	CollisionMapInfo info;
-	info.velocityAfterCollision = {0.0f, velocity_.y, 0.0f};
-	CollisionMap(info);
-	CollisionDetected(info);
-	ApplyCollisionResult(info);
-
-	if (guardTimer_ >= kGuardTime) {
-		behavior_ = Behavior::kWalk;
-		worldTransform_.rotation_.x = 0.0f;
-	}
-}
-
 void ShieldEnemy::draw() { enemyModel_->Draw(worldTransform_, *camera_, textureHandleEnemy_); }
 
 void ShieldEnemy::onCollision(Player* player) {
@@ -124,11 +98,8 @@ void ShieldEnemy::onCollision(Player* player) {
 	bool isFacingEachOther = (player->GetLRDirection() == Player::LRDirection::kRight && !facingRight_) || (player->GetLRDirection() == Player::LRDirection::kLeft && facingRight_);
 
 	if (isFacingEachOther) {
-		// ガード成功: デスを回避してガードリアクションへ
-		behavior_ = Behavior::kGuard;
-		guardTimer_ = 0.0f;
-
-		// ガードエフェクトを生成する(実際の生成はGameScene側。ここではフラグを立てるだけ)
+		// ガード成功: デスを回避する。専用のアニメーションは付けず、
+		// 見た目はそのまま歩行状態を継続させる(GuardEffectとノックバックだけで表現する)。
 		guardEffectRequested_ = true;
 
 		// プレイヤーのノックバックを要求する
@@ -148,6 +119,12 @@ bool ShieldEnemy::ConsumeGuardEffectRequest() {
 	return requested;
 }
 
+bool ShieldEnemy::ConsumeHitEffectRequest() {
+	bool requested = hitEffectRequested_;
+	hitEffectRequested_ = false;
+	return requested;
+}
+
 void ShieldEnemy::OnDefeated() {
 	if (behavior_ == Behavior::kDefeat) {
 		return; // already dying, ignore repeated hits
@@ -155,6 +132,9 @@ void ShieldEnemy::OnDefeated() {
 	behavior_ = Behavior::kDefeat;
 	defeatTimer_ = 0.0f;
 	velocity_ = {0.0f, 0.0f, 0.0f};
+
+	// 実際に撃破された瞬間なので、通常の撃破エフェクト(HitEffect)を要求する。
+	hitEffectRequested_ = true;
 }
 
 // ---- 以下、当たり判定まわりはEnemyクラスから最低限の書き換え(クラス名のみ変更) ----

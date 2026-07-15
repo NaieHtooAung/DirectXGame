@@ -1,11 +1,13 @@
 #pragma once
 #include "KamataEngine.h"
-#include <array>
-#include <random>
 using namespace KamataEngine;
 
 // HitEffectを複製してリネームしたクラス。
 // ShieldEnemyがガードに成功した時に再生する演出。
+// NOTE: 専用のリング(輪)形状モデルを1つ生成し、それを中心から
+// 拡大させることで「白い輪が広がって消える」見た目を作る。
+// 以前は破片を24個並べて疑似的に輪を表現していたが、
+// リング形状のモデルが用意されたため、その手法は不要になった。
 class GuardEffect {
 public:
 	static void SetModel(Model* model) { model_ = model; }
@@ -26,7 +28,7 @@ private:
 
 	// 状態遷移
 	enum class State {
-		kSpread, // 拡大アニメーション中
+		kSpread, // 輪が広がっていくアニメーション中
 		kFade,   // フェードアウト中
 		kDead,   // 消滅(削除待ち)
 	};
@@ -37,18 +39,16 @@ private:
 	// 状態切り替え機構(カウンタもリセットする)
 	void ChangeState(State newState);
 
-	static const int32_t kNumEllipse = 3; // 楕円の個数
-
 	static Model* model_;
 	static Camera* camera_;
 
-	// 乱数生成エンジン(共通の初期化)
-	static std::mt19937_64 randomEngine_;
-
 	uint32_t textureHandle_ = 0u;
 
-	// 楕円のワールドトランスフォーム
-	std::array<WorldTransform, kNumEllipse> ellipseWorldTransforms_;
+	// 輪モデルのワールドトランスフォーム(1個のみ)
+	WorldTransform worldTransform_;
+
+	// 発生位置(輪の中心)
+	Vector3 originPosition_{};
 
 	// 現在の状態
 	State state_ = State::kDead;
@@ -61,11 +61,12 @@ private:
 
 	static constexpr float kDeltaTime = 1.0f / 60.0f;
 
-	static constexpr float kSpreadDuration = 0.10f; // スプレッドの継続時間(秒)
+	static constexpr float kSpreadDuration = 0.10f; // 輪が広がる継続時間(秒)
 	static constexpr float kFadeDuration = 0.15f;   // フェードの継続時間(秒)
 
-	static constexpr float kSpreadStartScaleRate = 0.2f; // スプレッド開始時点のスケール倍率
+	// スプレッド開始時点のスケール倍率(中心に集まった縮小状態から始める)
+	static constexpr float kSpreadStartScaleRate = 0.2f;
 
-	static constexpr float kEllipseWidth = 0.5f;  // 楕円の幅
-	static constexpr float kEllipseLength = 6.0f; // 楕円の長さ
+	// 輪モデルの最終的なスケール倍率(モデル自体の半径に対する倍率)
+	static constexpr float kRingTargetScale = 1.0f;
 };

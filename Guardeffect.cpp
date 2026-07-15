@@ -1,15 +1,11 @@
 #include "GuardEffect.h"
 #include "mathUti.h"
 #include <cassert>
-#include <cmath>
 
 using namespace KamataEngine;
 
 Model* GuardEffect::model_ = nullptr;
 Camera* GuardEffect::camera_ = nullptr;
-
-// メルセンヌ・ツイスターエンジン(64bit版)の共通初期化
-std::mt19937_64 GuardEffect::randomEngine_ = std::mt19937_64(std::random_device{}());
 
 namespace {
 
@@ -27,7 +23,7 @@ float Clamp01(float t) {
 // 線形補間
 float Lerp(float a, float b, float t) { return a + (b - a) * t; }
 
-// イーズアウト(急激に始まり緩やかに終わる) : スプレッドの拡大に使用
+// イーズアウト(急激に始まり緩やかに終わる) : 輪の拡大に使用
 float EaseOutQuad(float t) { return 1.0f - (1.0f - t) * (1.0f - t); }
 
 // イーズイン(緩やかに始まり急激に終わる) : フェードアウトに使用
@@ -49,21 +45,14 @@ GuardEffect* GuardEffect::Create(uint32_t textureHandle, const Vector3& position
 
 void GuardEffect::Initialize(uint32_t textureHandle, const Vector3& position) {
 	textureHandle_ = textureHandle;
+	originPosition_ = position;
 
-	const float kPi = 3.14159265359f;
+	// スプレッド開始時点は中心に集まった縮小状態から始める
+	worldTransform_.scale_ = {kRingTargetScale * kSpreadStartScaleRate, kRingTargetScale * kSpreadStartScaleRate, 1.0f};
+	worldTransform_.rotation_ = {0.0f, 0.0f, 0.0f};
+	worldTransform_.translation_ = originPosition_;
 
-	// 指定範囲の乱数生成器(浮動小数点数用)
-	std::uniform_real_distribution<float> rotationDistribution(-kPi, kPi);
-
-	// 楕円エフェクト
-	for (WorldTransform& worldTransform : ellipseWorldTransforms_) {
-		// スプレッド開始時点は縮小した状態から始める
-		worldTransform.scale_ = {kEllipseWidth * kSpreadStartScaleRate, kEllipseLength * kSpreadStartScaleRate, 1.0f};
-		worldTransform.rotation_ = {0.0f, 0.0f, rotationDistribution(randomEngine_)};
-		worldTransform.translation_ = position; // 楕円エフェクトのトランスレーションを発生座標で初期化
-
-		worldTransform.Initialize();
-	}
+	worldTransform_.Initialize();
 
 	alpha_ = 1.0f;
 
@@ -98,21 +87,19 @@ void GuardEffect::Update() {
 	}
 
 	// ワールド行列の更新
-	for (WorldTransform& worldTransform : ellipseWorldTransforms_) {
-		worldTransform.matWorld_ = MakeAffineMatrix(worldTransform.scale_, worldTransform.rotation_, worldTransform.translation_);
-		worldTransform.TransferMatrix();
-	}
+	worldTransform_.matWorld_ = MakeAffineMatrix(worldTransform_.scale_, worldTransform_.rotation_, worldTransform_.translation_);
+	worldTransform_.TransferMatrix();
 }
 
 void GuardEffect::UpdateSpread() {
-	// スプレッド中はスケーリングを変化(イージング)
+	// スプレッド中は、輪モデルが中心から広がっていくようにスケールを変化させる(イージング)
 	float t = Clamp01(counter_ / kSpreadDuration);
 	float eased = EaseOutQuad(t);
-	float scaleRate = Lerp(kSpreadStartScaleRate, 1.0f, eased);
+	float scaleRate = Lerp(kSpreadStartScaleRate, kRingTargetScale, eased);
 
-	for (WorldTransform& worldTransform : ellipseWorldTransforms_) {
-		worldTransform.scale_ = {kEllipseWidth * scaleRate, kEllipseLength * scaleRate, 1.0f};
-	}
+	worldTransform_.scale_ = {scaleRate, scaleRate, 1.0f};
+	// 位置は中心に固定したまま(モデル自体が輪の形をしているため、移動は不要)
+	worldTransform_.translation_ = originPosition_;
 
 	// 継続時間に達したらフェードへ遷移
 	if (counter_ >= kSpreadDuration) {
@@ -121,7 +108,7 @@ void GuardEffect::UpdateSpread() {
 }
 
 void GuardEffect::UpdateFade() {
-	// フェード中はアルファ値を変化(イージング)
+	// フェード中は輪が広がりきった状態のまま、アルファ値だけを変化させる(イージング)
 	float t = Clamp01(counter_ / kFadeDuration);
 	float eased = EaseInQuad(t);
 	alpha_ = Lerp(1.0f, 0.0f, eased);
@@ -142,7 +129,5 @@ void GuardEffect::Draw() {
 	// TODO: お使いのModelクラスにあるアルファ/カラー設定用のAPIに置き換えてください。
 	// 例: model_->SetColor({1.0f, 1.0f, 1.0f, alpha_});
 
-	for (WorldTransform& worldTransform : ellipseWorldTransforms_) {
-		model_->Draw(worldTransform, *camera_, textureHandle_);
-	}
+	model_->Draw(worldTransform_, *camera_, textureHandle_);
 }
