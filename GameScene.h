@@ -36,16 +36,19 @@ private:
 	// プレイヤー
 	WorldTransform playerTransform_;
 	Model* playerModel_ = nullptr;
+	uint32_t playerTextureHandle_ = 0;
 
 	// 床
 	WorldTransform floorTransform_;
 	Model* floorModel_ = nullptr;
+	uint32_t floorTextureHandle_ = 0;
 
 	// アイテム(星のかわりに立方体を使う)
 	static const int kItemCount = 5;
 	WorldTransform itemTransforms_[kItemCount];
 	bool itemAlive_[kItemCount] = {};
 	Model* itemModel_ = nullptr;
+	uint32_t itemTextureHandle_ = 0;
 
 	// スコア
 	int score_ = 0;

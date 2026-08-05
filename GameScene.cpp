@@ -18,20 +18,26 @@ void GameScene::Initialize() {
 	camera_.UpdateMatrix();
 
 	// ----- プレイヤー -----
-	// "player.obj" は resources/player フォルダに用意してください(立方体や球でOK)
+	// "player.obj" は Resources/player フォルダに用意してください(立方体や球でOK)
 	playerModel_ = Model::CreateFromOBJ("player", true);
+	// ▼▼▼ ここにプレイヤーのテクスチャパスを入れる ▼▼▼
+	playerTextureHandle_ = TextureManager::Load("Resources/player/player.png");
 	playerTransform_.Initialize();
 	playerTransform_.translation_ = {0.0f, 1.0f, 0.0f};
 
 	// ----- 床 -----
 	// "floor.obj" は 1x1x1 の平たい板を想定。scale_で引き伸ばして使う
 	floorModel_ = Model::CreateFromOBJ("floor", true);
+	// ▼▼▼ ここに床のテクスチャパスを入れる ▼▼▼
+	floorTextureHandle_ = TextureManager::Load("Resources/SkyDome/floor.png");
 	floorTransform_.Initialize();
 	floorTransform_.scale_ = {kFieldHalfSize, 0.1f, kFieldHalfSize};
 	floorTransform_.translation_ = {0.0f, -0.5f, 0.0f};
 
 	// ----- アイテム -----
 	itemModel_ = Model::CreateFromOBJ("item", true);
+	// ▼▼▼ ここにアイテムのテクスチャパスを入れる ▼▼▼
+	itemTextureHandle_ = TextureManager::Load("Resources/item/item.png");
 	for (int i = 0; i < kItemCount; ++i) {
 		itemTransforms_[i].Initialize();
 		SpawnItem(i);
@@ -157,15 +163,15 @@ void GameScene::Update() {
 
 void GameScene::Draw() {
 	// 床
-	floorModel_->Draw(floorTransform_, camera_);
+	floorModel_->Draw(floorTransform_, camera_, floorTextureHandle_);
 
 	// プレイヤー
-	playerModel_->Draw(playerTransform_, camera_);
+	playerModel_->Draw(playerTransform_, camera_, playerTextureHandle_);
 
 	// 生存しているアイテムだけ描画
 	for (int i = 0; i < kItemCount; ++i) {
 		if (itemAlive_[i]) {
-			itemModel_->Draw(itemTransforms_[i], camera_);
+			itemModel_->Draw(itemTransforms_[i], camera_, itemTextureHandle_);
 		}
 	}
 
