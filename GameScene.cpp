@@ -163,7 +163,6 @@ void GameScene::Update() {
 
 	camera_.UpdateMatrix();
 }
-
 void GameScene::Draw() {
 	// 床
 	floorModel_->Draw(floorTransform_, camera_, floorTextureHandle_);
