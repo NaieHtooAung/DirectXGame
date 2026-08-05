@@ -19,25 +19,28 @@ void GameScene::Initialize() {
 
 	// ----- プレイヤー -----
 	// "player.obj" は Resources/player フォルダに用意してください(立方体や球でOK)
-	playerModel_ = Model::CreateFromOBJ("player", true);
+	
 	// ▼▼▼ ここにプレイヤーのテクスチャパスを入れる ▼▼▼
-	playerTextureHandle_ = TextureManager::Load("Resources/player/player.png");
+	playerTextureHandle_ = TextureManager::Load("./Resources/player/player.png");
+	playerModel_ = Model::CreateFromOBJ("player", true);
 	playerTransform_.Initialize();
 	playerTransform_.translation_ = {0.0f, 1.0f, 0.0f};
 
 	// ----- 床 -----
 	// "floor.obj" は 1x1x1 の平たい板を想定。scale_で引き伸ばして使う
-	floorModel_ = Model::CreateFromOBJ("floor", true);
+	
 	// ▼▼▼ ここに床のテクスチャパスを入れる ▼▼▼
-	floorTextureHandle_ = TextureManager::Load("Resources/SkyDome/floor.png");
+	floorTextureHandle_ = TextureManager::Load("./Resources/SkyDome/sky_sphere.png");
+	floorModel_ = Model::CreateFromOBJ("SkyDome", true);
 	floorTransform_.Initialize();
 	floorTransform_.scale_ = {kFieldHalfSize, 0.1f, kFieldHalfSize};
 	floorTransform_.translation_ = {0.0f, -0.5f, 0.0f};
 
 	// ----- アイテム -----
-	itemModel_ = Model::CreateFromOBJ("item", true);
+	
 	// ▼▼▼ ここにアイテムのテクスチャパスを入れる ▼▼▼
-	itemTextureHandle_ = TextureManager::Load("Resources/item/item.png");
+	itemTextureHandle_ = TextureManager::Load("./Resources/ring/ring.png");
+	itemModel_ = Model::CreateFromOBJ("ring", true);
 	for (int i = 0; i < kItemCount; ++i) {
 		itemTransforms_[i].Initialize();
 		SpawnItem(i);
