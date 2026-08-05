@@ -1,31 +1,45 @@
-#include <Windows.h>
-#include <KamataEngine.h>
 #include "GameScene.h"
-// Windowsアプリでのエントリーポイント(main関数)
+#include <KamataEngine.h>
+
 using namespace KamataEngine;
-int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
-	KamataEngine::Initialize(L"GC2A_04_ネイ_トウーアウン_AL3");
+
+// Windowsアプリのエントリーポイント
+int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
+
+	// KamataEngineの初期化(ウィンドウタイトルは自由に変更してOK)
+	KamataEngine::Initialize(L"Star Collector 3D");
+
+	// DirectX共通部分の取得
 	DirectXCommon* dxCommon = DirectXCommon::GetInstance();
+
+	// ゲームシーンの生成と初期化
 	GameScene* gameScene = new GameScene();
 	gameScene->Initialize();
-	// ゲームループ
-	while (true) {
 
+	// メインループ
+	while (true) {
+		// エンジン更新(falseが返ってきたら終了)
 		if (KamataEngine::Update()) {
 			break;
 		}
 
+		// ゲームシーンの更新
 		gameScene->Update();
-		dxCommon->PreDraw();
-		// 描画処理
 
+		// 描画開始
+		dxCommon->PreDraw();
+
+		// ゲームシーンの描画
 		gameScene->Draw();
 
+		// 描画終了
 		dxCommon->PostDraw();
 	}
+
+	// 後片付け
 	delete gameScene;
-	gameScene = nullptr;
 
 	KamataEngine::Finalize();
+
 	return 0;
 }
