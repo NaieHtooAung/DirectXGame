@@ -29,8 +29,14 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		// 描画開始
 		dxCommon->PreDraw();
 
+		// 3Dモデル描画の準備(これを呼ばないとmodel_->Draw()内でcmdListがnullptrになりクラッシュする)
+		Model::PreDraw();
+
 		// ゲームシーンの描画
 		gameScene->Draw();
+
+		// 3Dモデル描画の終了
+		Model::PostDraw();
 
 		// 描画終了
 		dxCommon->PostDraw();
