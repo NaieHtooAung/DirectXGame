@@ -61,11 +61,8 @@ void GameScene::CheckCollision() {
 }
 
 void GameScene::Update() {
-	// リトライ(ゲームオーバー時にRキーでリセット)
+	// タイムアップしたら何もしない(シーン切り替えはmain.cppが担当する)
 	if (isGameOver_) {
-		if (Input::GetInstance()->PushKey(DIK_R)) {
-			Reset();
-		}
 		return;
 	}
 

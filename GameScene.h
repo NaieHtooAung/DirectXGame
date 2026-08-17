@@ -20,9 +20,17 @@ public:
 	void Update();
 	void Draw();
 
+	// 制限時間が終わったらtrueを返す(main.cppがこれを見て終了画面に切り替える)
+	bool IsTimeUp() const { return isGameOver_; }
+
+	// 現在のスコアを取得(終了画面に渡す用)
+	int GetScore() const { return score_; }
+
+	// ゲームを最初からやり直す(main.cppがEndSceneからの復帰時に呼ぶ)
+	void Reset();
+
 private:
 	void CheckCollision();
-	void Reset();
 
 private:
 	// カメラ(見下ろし視点)
