@@ -54,7 +54,7 @@ void GameScene::CheckCollision() {
 
 		if (distance < kCollisionDistance) {
 			// 取得!スコア加算して、別の場所に再配置する
-			score_ += 1;
+			score_ += 100;
 			items_[i].Respawn();
 		}
 	}
@@ -86,7 +86,7 @@ void GameScene::Update() {
 void GameScene::Draw() {
 	floor_.Draw(camera_);
 	player_.Draw(camera_);
-
+	
 	for (int i = 0; i < kItemCount; ++i) {
 		items_[i].Draw(camera_);
 	}

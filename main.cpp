@@ -45,6 +45,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		case Scene::kStart:
 			startScene->Update();
 			if (startScene->IsGameStart()) {
+				
 				// スタート画面 → ゲーム画面
 				gameScene->Reset();
 				scene = Scene::kGame;
