@@ -30,6 +30,22 @@ void GameScene::Initialize() {
 	score_ = 0;
 	timeLeft_ = 60 * 30;
 	isGameOver_ = false;
+
+	// ----- BGM -----
+	// Reset()で2回目以降Initialize()が呼ばれることがあるので、
+	// 前回再生していたBGMがあれば先に止めてから鳴らし直す
+	StopBGM();
+	// ▼▼▼ ここにゲームプレイ中のBGMファイルのパスを入れる ▼▼▼
+	Audio* audio = Audio::GetInstance();
+	bgmSoundHandle_ = audio->LoadWave("./Resources/sound/game_bgm.mp3");
+	bgmVoiceHandle_ = audio->PlayWave(bgmSoundHandle_, true); // 第2引数true = ループ再生
+}
+
+void GameScene::StopBGM() {
+	if (bgmVoiceHandle_ != 0) {
+		Audio::GetInstance()->StopWave(bgmVoiceHandle_);
+		bgmVoiceHandle_ = 0;
+	}
 }
 
 void GameScene::Reset() { Initialize(); }
@@ -54,7 +70,7 @@ void GameScene::CheckCollision() {
 
 		if (distance < kCollisionDistance) {
 			// 取得!スコア加算して、別の場所に再配置する
-			score_ += 100;
+			score_ += 1;
 			items_[i].Respawn();
 		}
 	}
@@ -86,7 +102,7 @@ void GameScene::Update() {
 void GameScene::Draw() {
 	floor_.Draw(camera_);
 	player_.Draw(camera_);
-	
+
 	for (int i = 0; i < kItemCount; ++i) {
 		items_[i].Draw(camera_);
 	}

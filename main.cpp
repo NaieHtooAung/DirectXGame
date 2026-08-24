@@ -5,11 +5,11 @@
 
 using namespace KamataEngine;
 
-// シーンの種類
-enum class Scene {
-	kStart,
-	kGame,
-	kEnd,
+// 現在どのシーンを表示しているか
+enum class SceneType {
+	kStart, // タイトル画面
+	kGame,  // メインのゲームシーン
+	kEnd,   // 制限時間が終わったあとの終了画面
 };
 
 // Windowsアプリのエントリーポイント
@@ -21,16 +21,17 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// DirectX共通部分の取得
 	DirectXCommon* dxCommon = DirectXCommon::GetInstance();
 
-	// 現在のシーン(最初はスタート画面)
-	Scene scene = Scene::kStart;
+	// 現在のシーン(最初はタイトル画面から始める)
+	SceneType sceneType = SceneType::kStart;
 
-	// 各シーンの生成
+	// タイトル画面の生成と初期化
 	StartScene* startScene = new StartScene();
 	startScene->Initialize();
 
+	// ゲームシーンの生成(初期化はタイトル画面からゲームを始めるときに行う)
 	GameScene* gameScene = new GameScene();
-	gameScene->Initialize();
 
+	// 終了画面の生成(初期化はタイムアップしたときに行う)
 	EndScene* endScene = new EndScene();
 
 	// メインループ
@@ -40,58 +41,67 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			break;
 		}
 
-		// ----- シーンごとの更新とシーン切り替え -----
-		switch (scene) {
-		case Scene::kStart:
+		// ----- 更新 -----
+		switch (sceneType) {
+		case SceneType::kStart:
 			startScene->Update();
+
+			// スペースキーでゲームシーンを初期化して開始する
 			if (startScene->IsGameStart()) {
-				
-				// スタート画面 → ゲーム画面
-				gameScene->Reset();
-				scene = Scene::kGame;
+				startScene->StopBGM();
+				gameScene->Initialize();
+				sceneType = SceneType::kGame;
 			}
 			break;
 
-		case Scene::kGame:
+		case SceneType::kGame:
 			gameScene->Update();
+
+			// 制限時間が終わったら終了画面に切り替える
 			if (gameScene->IsTimeUp()) {
-				// ゲーム画面 → 終了画面
+				gameScene->StopBGM();
 				endScene->Initialize(gameScene->GetScore());
-				scene = Scene::kEnd;
+				sceneType = SceneType::kEnd;
 			}
 			break;
 
-		case Scene::kEnd:
+		case SceneType::kEnd:
 			endScene->Update();
+
+			// Rキーが押されたらゲームシーンをやり直してゲームシーンに戻る
 			if (endScene->IsReturnToGame()) {
-				// 終了画面 → ゲーム画面(やり直し)
 				gameScene->Reset();
-				scene = Scene::kGame;
+				sceneType = SceneType::kGame;
 			}
 			break;
 		}
 
-		// 描画開始
+		// ----- 描画 -----
 		dxCommon->PreDraw();
 
-		// 3Dモデル描画の準備(これを呼ばないとmodel_->Draw()内でcmdListがnullptrになりクラッシュする)
+		// ----- 3Dモデルの描画(GameSceneのみ) -----
+		// これを呼ばないとmodel_->Draw()内でcmdListがnullptrになりクラッシュする
 		Model::PreDraw();
+		if (sceneType == SceneType::kGame) {
+			gameScene->Draw();
+		}
+		Model::PostDraw();
 
-		// ----- シーンごとの描画 -----
-		switch (scene) {
-		case Scene::kStart:
+		// ----- 2D画像(Sprite)の描画(StartScene / EndScene) -----
+		Sprite::PreDraw();
+		switch (sceneType) {
+		case SceneType::kStart:
 			startScene->Draw();
 			break;
-		case Scene::kGame:
-			gameScene->Draw();
-			break;
-		case Scene::kEnd:
+
+		case SceneType::kEnd:
 			endScene->Draw();
 			break;
-		}
 
-		// 3Dモデル描画の終了
-		Model::PostDraw();
+		default:
+			break;
+		}
+		Sprite::PostDraw();
 
 		// 描画終了
 		dxCommon->PostDraw();

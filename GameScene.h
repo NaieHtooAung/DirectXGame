@@ -29,6 +29,9 @@ public:
 	// ゲームを最初からやり直す(main.cppがEndSceneからの復帰時に呼ぶ)
 	void Reset();
 
+	// このシーンのBGMを止める(main.cppが終了画面に切り替えるときに呼ぶ)
+	void StopBGM();
+
 private:
 	void CheckCollision();
 
@@ -56,4 +59,8 @@ private:
 
 	// アイテムに触れたと判定する距離
 	static constexpr float kCollisionDistance = 1.5f;
+
+	// ゲームプレイ中のBGM
+	uint32_t bgmSoundHandle_ = 0;
+	uint32_t bgmVoiceHandle_ = 0;
 };

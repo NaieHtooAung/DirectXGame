@@ -3,7 +3,7 @@
 #include <cstdlib>
 
 void Item::Initialize(Model* model, uint32_t textureHandle) {
-	model_ = model;
+	itemModel_ = model;
 	textureHandle_ = textureHandle;
 
 	worldTransform_.Initialize();
@@ -35,9 +35,9 @@ void Item::Draw(const Camera& camera) {
 	}
 
 	// エンジンがテクスチャハンドル引数に対応していない場合はこちら(2引数)
-	model_->Draw(worldTransform_, camera);
+	itemModel_->Draw(worldTransform_, camera);
 
 	// もしModel::Drawがテクスチャハンドルを受け取れるバージョンなら、
 	// 上の行をコメントアウトして下の行を使ってください
-	// model_->Draw(worldTransform_, camera, textureHandle_);
+	// itemModel_->Draw(worldTransform_, camera, textureHandle_);
 }

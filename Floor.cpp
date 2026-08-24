@@ -5,10 +5,10 @@ Floor::~Floor() { delete model_; }
 
 void Floor::Initialize() {
 	// ▼▼▼ ここに床のテクスチャパスを入れる ▼▼▼
-	textureHandle_ = TextureManager::Load("./Resources/SkyDome/sky_sphere.png");
+	textureHandle_ = TextureManager::Load("./Resources/Floor/floorBrick.png");
 
 	// "floor.obj" は 1x1x1 の平たい板を想定。scale_で引き伸ばして使う
-	model_ = Model::CreateFromOBJ("SkyDome", true);
+	model_ = Model::CreateFromOBJ("floor", true);
 
 	worldTransform_.Initialize();
 	worldTransform_.scale_ = {kFieldHalfSize, 0.1f, kFieldHalfSize};

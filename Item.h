@@ -25,7 +25,7 @@ public:
 
 private:
 	WorldTransform worldTransform_;
-	Model* model_ = nullptr; // 借りているだけ(delete しない)
+	Model* itemModel_ = nullptr; // 借りているだけ(delete しない)
 	uint32_t textureHandle_ = 0;
 	bool isAlive_ = true;
 
