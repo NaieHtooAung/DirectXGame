@@ -5,7 +5,7 @@ Player::~Player() { delete model_; }
 
 void Player::Initialize() {
 	// ▼▼▼ ここにプレイヤーのテクスチャパスを入れる ▼▼▼
-	textureHandle_ = TextureManager::Load("./Resources/player/player.png");
+	textureHandle_ = TextureManager::Load("./Resources/player/rabbit.png");
 
 	// "player.obj" は Resources/player フォルダに用意してください
 	model_ = Model::CreateFromOBJ("player", true);
