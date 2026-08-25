@@ -25,20 +25,6 @@ void GameScene::Initialize() {
 	player_ = new Player();
 	player_->Initialize();
 
-	// ---- 敵やギミックの配置 ----
-	enemies_.push_back(new Enemy());
-	enemies_[0]->Initialize({ 3.0f, 0.0f, 5.0f }, 3.0f, 1.0f);
-	enemies_.push_back(new Enemy());
-	enemies_[1]->Initialize({ -4.0f, 0.0f, 10.0f }, 2.0f, -1.0f);
-
-	// ---- ゲームシステムの目標（コイン）----
-	coins_.push_back(new Coin());
-	coins_[0]->Initialize({ -2.0f, 1.0f, 4.0f });
-	coins_.push_back(new Coin());
-	coins_[1]->Initialize({ 2.0f, 1.0f, 8.0f });
-	coins_.push_back(new Coin());
-	coins_[2]->Initialize({ 0.0f, 1.0f, 12.0f });
-
 	particleManager_ = new ParticleManager();
 	particleManager_->Initialize();
 
@@ -59,9 +45,96 @@ void GameScene::Initialize() {
 	titleSprite_ = Sprite::Create(titleTextureHandle_, { 0.0f, 0.0f });
 	titleSprite_->SetSize({ 1280.0f, 720.0f });
 
-	// エンド画面用オーバーレイ（クリア/ゲームオーバーの色分け）
+	// エンド画面用オーバーレイ（クリア/ゲームオーバー/ステージクリアの色分けに流用）
 	endSprite_ = Sprite::Create(blackTextureHandle_, { 0.0f, 0.0f });
 	endSprite_->SetSize({ 1280.0f, 720.0f });
+
+	// ---- 1ステージ目を読み込む ----
+	currentStage_ = 1;
+	LoadStage(currentStage_);
+}
+
+void GameScene::ClearStageObjects() {
+	for (auto* e : enemies_) {
+		delete e;
+	}
+	enemies_.clear();
+	for (auto* c : coins_) {
+		delete c;
+	}
+	coins_.clear();
+}
+
+void GameScene::LoadStage(int32_t stageNumber) {
+	ClearStageObjects();
+	currentStage_ = stageNumber;
+
+	switch (stageNumber) {
+	case 1:
+		// ---- ステージ1：まずは基本を覚える難易度 ----
+		enemies_.push_back(new Enemy());
+		enemies_[0]->Initialize({ 3.0f, 0.0f, 5.0f }, 3.0f, 1.0f, 0.05f);
+		enemies_.push_back(new Enemy());
+		enemies_[1]->Initialize({ -4.0f, 0.0f, 10.0f }, 2.0f, -1.0f, 0.05f);
+
+		coins_.push_back(new Coin());
+		coins_[0]->Initialize({ -2.0f, 1.0f, 4.0f });
+		coins_.push_back(new Coin());
+		coins_[1]->Initialize({ 2.0f, 1.0f, 8.0f });
+		coins_.push_back(new Coin());
+		coins_[2]->Initialize({ 0.0f, 1.0f, 12.0f });
+		break;
+
+	case 2:
+		// ---- ステージ2：敵の数と速度アップ、コインまでの距離も伸ばす ----
+		enemies_.push_back(new Enemy());
+		enemies_[0]->Initialize({ 4.0f, 0.0f, 6.0f }, 4.0f, 1.0f, 0.08f);
+		enemies_.push_back(new Enemy());
+		enemies_[1]->Initialize({ -4.0f, 0.0f, 10.0f }, 3.0f, -1.0f, 0.08f);
+		enemies_.push_back(new Enemy());
+		enemies_[2]->Initialize({ 2.0f, 0.0f, 14.0f }, 3.0f, 1.0f, 0.09f);
+		enemies_.push_back(new Enemy());
+		enemies_[3]->Initialize({ -3.0f, 0.0f, 18.0f }, 2.0f, -1.0f, 0.09f);
+
+		coins_.push_back(new Coin());
+		coins_[0]->Initialize({ -3.0f, 1.0f, 5.0f });
+		coins_.push_back(new Coin());
+		coins_[1]->Initialize({ 3.0f, 1.0f, 9.0f });
+		coins_.push_back(new Coin());
+		coins_[2]->Initialize({ -2.0f, 1.0f, 14.0f });
+		coins_.push_back(new Coin());
+		coins_[3]->Initialize({ 2.0f, 1.0f, 18.0f });
+		break;
+
+	case 3:
+	default:
+		// ---- ステージ3：敵が多く速い。広い範囲を往復する敵もいて、
+		//      コインを取るには敵の隙間を縫って進むタイミングが必要 ----
+		enemies_.push_back(new Enemy());
+		enemies_[0]->Initialize({ 0.0f, 0.0f, 6.0f }, 5.0f, 1.0f, 0.12f);
+		enemies_.push_back(new Enemy());
+		enemies_[1]->Initialize({ -5.0f, 0.0f, 9.0f }, 3.0f, -1.0f, 0.11f);
+		enemies_.push_back(new Enemy());
+		enemies_[2]->Initialize({ 5.0f, 0.0f, 12.0f }, 3.0f, 1.0f, 0.11f);
+		enemies_.push_back(new Enemy());
+		enemies_[3]->Initialize({ -4.0f, 0.0f, 16.0f }, 4.0f, -1.0f, 0.13f);
+		enemies_.push_back(new Enemy());
+		enemies_[4]->Initialize({ 4.0f, 0.0f, 20.0f }, 4.0f, 1.0f, 0.13f);
+		enemies_.push_back(new Enemy());
+		enemies_[5]->Initialize({ 0.0f, 0.0f, 24.0f }, 6.0f, -1.0f, 0.15f);
+
+		coins_.push_back(new Coin());
+		coins_[0]->Initialize({ -4.0f, 1.0f, 5.0f });
+		coins_.push_back(new Coin());
+		coins_[1]->Initialize({ 4.0f, 1.0f, 9.0f });
+		coins_.push_back(new Coin());
+		coins_[2]->Initialize({ -3.0f, 1.0f, 14.0f });
+		coins_.push_back(new Coin());
+		coins_[3]->Initialize({ 3.0f, 1.0f, 19.0f });
+		coins_.push_back(new Coin());
+		coins_[4]->Initialize({ 0.0f, 1.0f, 25.0f });
+		break;
+	}
 }
 
 void GameScene::Update() {
@@ -80,6 +153,9 @@ void GameScene::Update() {
 		if (!isPaused_) {
 			UpdateGame();
 		}
+		break;
+	case Scene::kStageClear:
+		UpdateStageClear();
 		break;
 	case Scene::kEnd:
 		UpdateEnd();
@@ -175,14 +251,31 @@ void GameScene::UpdateGame() {
 		}
 	}
 
-	// ---- ゲーム→エンド（クリア）----
+	// ---- 全コイン取得：次のステージへ（最終ステージなら本当のクリア）----
 	if (allGot) {
-		won_ = true;
-		scene_ = Scene::kEnd;
-		// Audio::GetInstance()->PlayWave(seClearHandle_);
+		if (currentStage_ < kMaxStage_) {
+			scene_ = Scene::kStageClear;
+			stageClearTimer_ = kStageClearDuration_;
+		}
+		else {
+			won_ = true;
+			scene_ = Scene::kEnd;
+			// Audio::GetInstance()->PlayWave(seClearHandle_);
+		}
 	}
 
 	particleManager_->Update();
+}
+
+void GameScene::UpdateStageClear() {
+	// ---- ステージクリア演出：少し待ってから次のステージを読み込む ----
+	stageClearTimer_--;
+	if (stageClearTimer_ <= 0) {
+		LoadStage(currentStage_ + 1);
+		player_->Reset();
+		camera_.translation_ = { 0.0f, 5.0f, -20.0f };
+		scene_ = Scene::kGame;
+	}
 }
 
 void GameScene::UpdateEnd() {
@@ -197,14 +290,10 @@ void GameScene::UpdateEnd() {
 
 void GameScene::Reset() {
 	player_->Reset();
-	for (auto* enemy : enemies_) {
-		enemy->Reset();
-	}
-	for (auto* coin : coins_) {
-		coin->Reset();
-	}
+	LoadStage(1);
 	camera_.translation_ = { 0.0f, 5.0f, -20.0f };
 	fade_ = 0.0f;
+	stageClearTimer_ = 0;
 }
 
 void GameScene::Draw() {
@@ -244,6 +333,11 @@ void GameScene::Draw() {
 		else {
 			endSprite_->SetColor({ 0.8f, 0.0f, 0.0f, 0.5f });
 		}
+		endSprite_->Draw();
+	}
+	if (scene_ == Scene::kStageClear) {
+		// ---- ステージクリア演出：金色の半透明オーバーレイを一瞬挟む ----
+		endSprite_->SetColor({ 1.0f, 0.85f, 0.0f, 0.35f });
 		endSprite_->Draw();
 	}
 	// ---- 画面遷移フェード ----

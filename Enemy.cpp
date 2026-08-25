@@ -1,10 +1,11 @@
 #include "Enemy.h"
 #include"UpdateMatrix.h"
-void Enemy::Initialize(const Vector3& basePosition, float range, float dir) {
+void Enemy::Initialize(const Vector3& basePosition, float range, float dir, float speed) {
 	basePosition_ = basePosition;
 	range_ = range;
 	dir_ = dir;
 	initialDir_ = dir;
+	speed_ = speed;
 
 	// 後で敵モデルに差し替える場所
 	// model_ = Model::CreateFromOBJ("enemy", true);
@@ -21,7 +22,7 @@ void Enemy::Update() {
 	}
 
 	// ---- 敵の挙動：範囲内をXZ平面上で往復 ----
-	worldTransform_.translation_.x += dir_ * 0.05f;
+	worldTransform_.translation_.x += dir_ * speed_;
 	if (worldTransform_.translation_.x > basePosition_.x + range_ || worldTransform_.translation_.x < basePosition_.x - range_) {
 		dir_ *= -1.0f;
 	}

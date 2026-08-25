@@ -5,9 +5,10 @@ void Ground::Initialize() {
 	model_ = Model::CreateFromOBJ("floor", true);
 
 	worldTransform_.Initialize();
-	worldTransform_.translation_ = { 0.0f, -1.0f, 6.0f };
+	worldTransform_.translation_ = { 0.0f, -1.0f, 15.0f };
 	// 床っぽく見えるように平べったく、広めに引き伸ばす
-	worldTransform_.scale_ = { 15.0f, 0.2f, 20.0f };
+	// ステージ3（一番奥まで進む）でも足りるように長めに取っておく
+	worldTransform_.scale_ = { 15.0f, 0.2f, 40.0f };
 
 	worldTransform_.matWorld_ = MakeAffineMatrix(worldTransform_.scale_, worldTransform_.rotation_, worldTransform_.translation_);
 	worldTransform_.TransferMatrix();

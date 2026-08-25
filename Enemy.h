@@ -8,7 +8,7 @@ using namespace KamataEngine;
 // ---------------------------------------------
 class Enemy {
 public:
-	void Initialize(const Vector3& basePosition, float range, float dir);
+	void Initialize(const Vector3& basePosition, float range, float dir, float speed = 0.05f);
 	void Update();
 	void Draw(const Camera& camera);
 	void Reset();
@@ -27,5 +27,6 @@ private:
 	float range_ = 3.0f;
 	float dir_ = 1.0f;
 	float initialDir_ = 1.0f;
+	float speed_ = 0.05f; // ステージが進むほど速くする（難易度調整）
 	bool isAlive_ = true;
 };
