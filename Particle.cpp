@@ -1,4 +1,11 @@
 #include "Particle.h"
+#include "UpdateMatrix.h"
+ParticleManager::~ParticleManager() {
+	for (auto* p : particles_) {
+		delete p->worldTransform;
+		delete p;
+	}
+}
 
 void ParticleManager::Initialize() {
 	// 後で専用パーティクルモデルに差し替える場所
@@ -8,32 +15,37 @@ void ParticleManager::Initialize() {
 
 void ParticleManager::Spawn(const Vector3& position) {
 	for (int32_t i = 0; i < 8; ++i) {
-		ParticleData p;
-		p.worldTransform.Initialize();
-		p.worldTransform.translation_ = position;
-		p.worldTransform.scale_ = { 0.2f, 0.2f, 0.2f };
-		p.velocity = {
+		ParticleData* p = new ParticleData();
+		p->worldTransform = new WorldTransform();
+		p->worldTransform->Initialize();
+		p->worldTransform->translation_ = position;
+		p->worldTransform->scale_ = { 0.2f, 0.2f, 0.2f };
+		p->velocity = {
 			(float(rand() % 200) / 100.0f - 1.0f) * 0.1f,
 			(float(rand() % 200) / 100.0f) * 0.1f,
 			(float(rand() % 200) / 100.0f - 1.0f) * 0.1f,
 		};
-		p.life = 20;
+		p->life = 20;
 		particles_.push_back(p);
 	}
 }
 
 void ParticleManager::Update() {
 	for (auto it = particles_.begin(); it != particles_.end();) {
-		it->worldTransform.translation_.x += it->velocity.x;
-		it->worldTransform.translation_.y += it->velocity.y;
-		it->worldTransform.translation_.z += it->velocity.z;
-		it->life--;
+		ParticleData* p = *it;
+		p->worldTransform->translation_.x += p->velocity.x;
+		p->worldTransform->translation_.y += p->velocity.y;
+		p->worldTransform->translation_.z += p->velocity.z;
+		p->life--;
 
-		if (it->life <= 0) {
+		if (p->life <= 0) {
+			delete p->worldTransform;
+			delete p;
 			it = particles_.erase(it);
 		}
 		else {
-			it->worldTransform.UpdateMatrix();
+			p->worldTransform->matWorld_ = MakeAffineMatrix(p->worldTransform->scale_, p->worldTransform->rotation_, p->worldTransform->translation_);
+			p->worldTransform->TransferMatrix();
 			++it;
 		}
 	}
@@ -41,6 +53,6 @@ void ParticleManager::Update() {
 
 void ParticleManager::Draw(const Camera& camera) {
 	for (auto& p : particles_) {
-		model_->Draw(p.worldTransform, camera);
+		model_->Draw(*p->worldTransform, camera);
 	}
 }

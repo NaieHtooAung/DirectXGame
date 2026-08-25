@@ -5,18 +5,18 @@
 #include "Enemy.h"
 #include "Coin.h"
 #include "Particle.h"
+#include "Ground.h"
+#include "SkyDome.h"
 
 using namespace KamataEngine;
 
 // ---------------------------------------------
-// シーン一覧（タイトル→スタート演出→プレイ→クリア/ゲームオーバー）
+// シーン一覧：スタート→ゲーム→エンド→（リトライで）ゲーム、のループ
 // ---------------------------------------------
 enum class Scene {
-	kTitle,
 	kStart,
-	kPlay,
-	kClear,
-	kGameOver,
+	kGame,
+	kEnd,
 };
 
 class GameScene {
@@ -28,12 +28,17 @@ public:
 	void Draw();
 
 private:
-	void UpdateTitle();
 	void UpdateStart();
-	void UpdatePlay();
+	void UpdateGame();
+	void UpdateEnd();
 
-	Scene scene_ = Scene::kTitle;
+	// ゲームの状態を初期値に戻す（エンド→ゲームのループで使う）
+	void Reset();
+
+	Scene scene_ = Scene::kStart;
 	bool isPaused_ = false;
+	bool isCountingDown_ = false; // スタート演出中かどうか
+	bool won_ = false;            // エンドの結果（true=クリア, false=ゲームオーバー）
 
 	// ---- 画面遷移（フェード）----
 	float fade_ = 1.0f;
@@ -52,6 +57,8 @@ private:
 	std::vector<Enemy*> enemies_;
 	std::vector<Coin*> coins_;
 	ParticleManager* particleManager_ = nullptr;
+	Ground* ground_ = nullptr;
+	SkyDome* skyDome_ = nullptr;
 
 	// フェード用の黒背景スプライト（画面遷移のみ2D）
 	uint32_t blackTextureHandle_ = 0;
@@ -59,5 +66,9 @@ private:
 
 	// タイトル画面用スプライト（後で画像に差し替える）
 	uint32_t titleTextureHandle_ = 0;
+	int32_t textureHandleSky_ = 0;
 	Sprite* titleSprite_ = nullptr;
+
+	// エンド画面用の色付きオーバーレイ（クリア=緑、ゲームオーバー=赤）
+	Sprite* endSprite_ = nullptr;
 };

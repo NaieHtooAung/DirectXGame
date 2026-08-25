@@ -1,9 +1,10 @@
 #include "Enemy.h"
-
+#include"UpdateMatrix.h"
 void Enemy::Initialize(const Vector3& basePosition, float range, float dir) {
 	basePosition_ = basePosition;
 	range_ = range;
 	dir_ = dir;
+	initialDir_ = dir;
 
 	// 後で敵モデルに差し替える場所
 	// model_ = Model::CreateFromOBJ("enemy", true);
@@ -25,11 +26,20 @@ void Enemy::Update() {
 		dir_ *= -1.0f;
 	}
 
-	worldTransform_.UpdateMatrix();
+	worldTransform_.matWorld_ = MakeAffineMatrix(worldTransform_.scale_, worldTransform_.rotation_, worldTransform_.translation_);
+	worldTransform_.TransferMatrix();
 }
 
 void Enemy::Draw(const Camera& camera) {
 	if (isAlive_) {
 		model_->Draw(worldTransform_, camera);
 	}
+}
+
+void Enemy::Reset() {
+	isAlive_ = true;
+	dir_ = initialDir_;
+	worldTransform_.translation_ = basePosition_;
+	worldTransform_.matWorld_ = MakeAffineMatrix(worldTransform_.scale_, worldTransform_.rotation_, worldTransform_.translation_);
+	worldTransform_.TransferMatrix();
 }

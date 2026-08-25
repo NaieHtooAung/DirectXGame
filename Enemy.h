@@ -11,6 +11,7 @@ public:
 	void Initialize(const Vector3& basePosition, float range, float dir);
 	void Update();
 	void Draw(const Camera& camera);
+	void Reset();
 
 	Vector3 GetPosition() const { return worldTransform_.translation_; }
 	bool IsAlive() const { return isAlive_; }
@@ -25,5 +26,6 @@ private:
 	Vector3 basePosition_{};
 	float range_ = 3.0f;
 	float dir_ = 1.0f;
+	float initialDir_ = 1.0f;
 	bool isAlive_ = true;
 };

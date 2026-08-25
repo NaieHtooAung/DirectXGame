@@ -1,4 +1,4 @@
-#include "MyMath.h"
+#include "UpdateMatrix.h"
 #include <cmath>
 
 Matrix4x4 Multiply(const Matrix4x4& a, const Matrix4x4& b) {
@@ -75,7 +75,7 @@ Matrix4x4 MakeTranslateMatrixMy(const Vector3& translate) {
 	return m;
 }
 
-Matrix4x4 MakeAffineMatrixMy(const Vector3& scale, const Vector3& rotation, const Vector3& translation) {
+Matrix4x4 MakeAffineMatrix(const Vector3& scale, const Vector3& rotation, const Vector3& translation) {
 	Matrix4x4 scaleMatrix = MakeScaleMatrixMy(scale);
 
 	Matrix4x4 rotateX = MakeRotateXMatrixMy(rotation.x);

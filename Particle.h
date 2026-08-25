@@ -6,11 +6,12 @@ using namespace KamataEngine;
 
 // ---------------------------------------------
 // フィードバック演出用のパーティクル1個分（3D版：小さいキューブを飛ばす）
+// WorldTransformはコピーできないため、必ずポインタで持つ
 // ---------------------------------------------
 struct ParticleData {
-	WorldTransform worldTransform;
-	Vector3 velocity;
-	int32_t life;
+	WorldTransform* worldTransform = nullptr;
+	Vector3 velocity{};
+	int32_t life = 0;
 };
 
 // ---------------------------------------------
@@ -18,6 +19,8 @@ struct ParticleData {
 // ---------------------------------------------
 class ParticleManager {
 public:
+	~ParticleManager();
+
 	void Initialize();
 	void Update();
 	void Draw(const Camera& camera);
@@ -28,5 +31,5 @@ public:
 private:
 	// 後で専用パーティクルモデルに差し替える場所
 	Model* model_ = nullptr;
-	std::list<ParticleData> particles_;
+	std::list<ParticleData*> particles_;
 };

@@ -166,9 +166,11 @@
     <ClCompile Include="Coin.cpp" />
     <ClCompile Include="Enemy.cpp" />
     <ClCompile Include="GameScene.cpp" />
+    <ClCompile Include="Ground.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Particle.cpp" />
     <ClCompile Include="Player.cpp" />
+    <ClCompile Include="Skydome.cpp" />
     <ClCompile Include="UpdateMatrix.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -272,8 +274,10 @@
     <ClInclude Include="Coin.h" />
     <ClInclude Include="Enemy.h" />
     <ClInclude Include="GameScene.h" />
+    <ClInclude Include="Ground.h" />
     <ClInclude Include="Particle.h" />
     <ClInclude Include="Player.h" />
+    <ClInclude Include="Skydome.h" />
     <ClInclude Include="UpdateMatrix.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

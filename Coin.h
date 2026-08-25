@@ -11,6 +11,7 @@ public:
 	void Initialize(const Vector3& position);
 	void Update();
 	void Draw(const Camera& camera);
+	void Reset();
 
 	Vector3 GetPosition() const { return worldTransform_.translation_; }
 	bool IsGot() const { return isGot_; }

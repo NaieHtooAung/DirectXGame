@@ -11,6 +11,9 @@ GameScene::~GameScene() {
 	delete particleManager_;
 	delete fadeSprite_;
 	delete titleSprite_;
+	delete endSprite_;
+	delete ground_;
+	delete skyDome_;
 }
 
 void GameScene::Initialize() {
@@ -39,6 +42,12 @@ void GameScene::Initialize() {
 	particleManager_ = new ParticleManager();
 	particleManager_->Initialize();
 
+	ground_ = new Ground();
+	ground_->Initialize();
+
+	skyDome_ = new SkyDome();
+	skyDome_->Initialize();
+
 	// フェード用オーバーレイ（2Dスプライト）
 	blackTextureHandle_ = TextureManager::GetInstance()->Load("white1x1.png");
 	fadeSprite_ = Sprite::Create(blackTextureHandle_, { 0.0f, 0.0f });
@@ -46,72 +55,73 @@ void GameScene::Initialize() {
 
 	// タイトル画像（2Dスプライト）
 	// 用意した画像に差し替える場所
-	titleTextureHandle_ = TextureManager::GetInstance()->Load("title.png");
+	titleTextureHandle_ = TextureManager::GetInstance()->Load("sample.png");
 	titleSprite_ = Sprite::Create(titleTextureHandle_, { 0.0f, 0.0f });
 	titleSprite_->SetSize({ 1280.0f, 720.0f });
+
+	// エンド画面用オーバーレイ（クリア/ゲームオーバーの色分け）
+	endSprite_ = Sprite::Create(blackTextureHandle_, { 0.0f, 0.0f });
+	endSprite_->SetSize({ 1280.0f, 720.0f });
 }
 
 void GameScene::Update() {
 	Input* input = Input::GetInstance();
 
 	// ---- ポーズメニュー ----
-	if (scene_ == Scene::kPlay && input->TriggerKey(DIK_ESCAPE)) {
+	if (scene_ == Scene::kGame && input->TriggerKey(DIK_ESCAPE)) {
 		isPaused_ = !isPaused_;
 	}
 
 	switch (scene_) {
-	case Scene::kTitle:
-		UpdateTitle();
-		break;
 	case Scene::kStart:
 		UpdateStart();
 		break;
-	case Scene::kPlay:
+	case Scene::kGame:
 		if (!isPaused_) {
-			UpdatePlay();
+			UpdateGame();
 		}
 		break;
-	case Scene::kClear:
-	case Scene::kGameOver:
-		if (input->TriggerKey(DIK_R)) {
-			// 簡易リトライ（本来はシーンの再初期化を行う）
-			scene_ = Scene::kTitle;
-			fade_ = 1.0f;
-		}
+	case Scene::kEnd:
+		UpdateEnd();
 		break;
-	}
-}
-
-void GameScene::UpdateTitle() {
-	Input* input = Input::GetInstance();
-	if (input->TriggerKey(DIK_RETURN)) {
-		// ---- タイトル→スタート演出への画面遷移 ----
-		scene_ = Scene::kStart;
-		startTimer_ = 60;
-		fade_ = 1.0f;
-		// Audio::GetInstance()->PlayWave(bgmHandle_, true, &bgmVoiceHandle_);
 	}
 }
 
 void GameScene::UpdateStart() {
+	Input* input = Input::GetInstance();
+
+	if (!isCountingDown_) {
+		// ---- タイトル表示中：Enterでスタート演出へ ----
+		if (input->TriggerKey(DIK_RETURN)) {
+			isCountingDown_ = true;
+			startTimer_ = 60;
+			fade_ = 1.0f;
+			// Audio::GetInstance()->PlayWave(bgmHandle_, true, &bgmVoiceHandle_);
+		}
+		return;
+	}
+
 	// ---- スタート演出：フェードインしながらカウントダウン ----
 	startTimer_--;
 	if (fade_ > 0.0f) {
 		fade_ -= 0.02f;
 	}
 	if (startTimer_ <= 0) {
-		scene_ = Scene::kPlay;
+		scene_ = Scene::kGame;
+		isCountingDown_ = false;
 		fade_ = 0.0f;
 	}
 }
 
-void GameScene::UpdatePlay() {
+void GameScene::UpdateGame() {
 	player_->Update();
 
 	// ---- カメラワーク：プレイヤーに追従（Z方向のみ）----
 	camera_.translation_.x = player_->GetPosition().x * 0.3f;
 	camera_.translation_.z = player_->GetPosition().z - 20.0f;
 	camera_.UpdateMatrix();
+
+	skyDome_->Update(camera_);
 
 	for (auto* enemy : enemies_) {
 		enemy->Update();
@@ -138,8 +148,9 @@ void GameScene::UpdatePlay() {
 			particleManager_->Spawn(pp);
 			enemy->PushBack();
 			if (player_->IsDead()) {
-				scene_ = Scene::kGameOver;
-				fade_ = 0.0f;
+				// ---- ゲーム→エンド（負け）----
+				won_ = false;
+				scene_ = Scene::kEnd;
 			}
 		}
 	}
@@ -164,21 +175,50 @@ void GameScene::UpdatePlay() {
 		}
 	}
 
-	// ---- クリア演出への画面遷移 ----
+	// ---- ゲーム→エンド（クリア）----
 	if (allGot) {
-		scene_ = Scene::kClear;
+		won_ = true;
+		scene_ = Scene::kEnd;
 		// Audio::GetInstance()->PlayWave(seClearHandle_);
 	}
 
 	particleManager_->Update();
 }
 
-void GameScene::Draw() {
-	if (scene_ == Scene::kTitle) {
-		// ---- タイトルシーン ----
-		titleSprite_->Draw();
+void GameScene::UpdateEnd() {
+	Input* input = Input::GetInstance();
+
+	// ---- エンド→ゲームのループ：Rキーでリセットして再開 ----
+	if (input->TriggerKey(DIK_R)) {
+		Reset();
+		scene_ = Scene::kGame;
 	}
-	else {
+}
+
+void GameScene::Reset() {
+	player_->Reset();
+	for (auto* enemy : enemies_) {
+		enemy->Reset();
+	}
+	for (auto* coin : coins_) {
+		coin->Reset();
+	}
+	camera_.translation_ = { 0.0f, 5.0f, -20.0f };
+	fade_ = 0.0f;
+}
+
+void GameScene::Draw() {
+	DirectXCommon* dxCommon = DirectXCommon::GetInstance();
+
+	// ---- 3Dモデルの描画（先にPreDraw/PostDrawで挟む）----
+	if (scene_ != Scene::kStart) {
+		// スカイドームはカメラの内側から見るので、カリングを無効にして描画する
+		Model::PreDraw(Model::CullingMode::kNone);
+		skyDome_->Draw(camera_);
+		Model::PostDraw();
+
+		Model::PreDraw();
+		ground_->Draw(camera_);
 		player_->Draw(camera_);
 		for (auto* enemy : enemies_) {
 			enemy->Draw(camera_);
@@ -187,11 +227,29 @@ void GameScene::Draw() {
 			coin->Draw(camera_);
 		}
 		particleManager_->Draw(camera_);
+		Model::PostDraw();
 	}
 
+	// ---- 2Dスプライトの描画（別でPreDraw/PostDrawが必要）----
+	Sprite::PreDraw(dxCommon->GetCommandList());
+	if (scene_ == Scene::kStart) {
+		// ---- タイトルシーン ----
+		titleSprite_->Draw();
+	}
+	if (scene_ == Scene::kEnd) {
+		// ---- エンドシーン：クリア=緑、ゲームオーバー=赤の半透明オーバーレイ ----
+		if (won_) {
+			endSprite_->SetColor({ 0.0f, 0.8f, 0.0f, 0.5f });
+		}
+		else {
+			endSprite_->SetColor({ 0.8f, 0.0f, 0.0f, 0.5f });
+		}
+		endSprite_->Draw();
+	}
 	// ---- 画面遷移フェード ----
 	if (fade_ > 0.0f) {
 		fadeSprite_->SetColor({ 0.0f, 0.0f, 0.0f, fade_ });
 		fadeSprite_->Draw();
 	}
+	Sprite::PostDraw();
 }
