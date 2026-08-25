@@ -9,7 +9,7 @@ void Enemy::Initialize(const Vector3& basePosition, float range, float dir, floa
 
 	// 後で敵モデルに差し替える場所
 	// model_ = Model::CreateFromOBJ("enemy", true);
-	model_ = Model::CreateFromOBJ("cube", true);
+	model_ = Model::CreateFromOBJ("e1", true);
 
 	worldTransform_.Initialize();
 	worldTransform_.translation_ = basePosition_;

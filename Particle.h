@@ -1,6 +1,7 @@
 #pragma once
 #include <KamataEngine.h>
 #include <list>
+#include <string>
 
 using namespace KamataEngine;
 
@@ -16,12 +17,14 @@ struct ParticleData {
 
 // ---------------------------------------------
 // パーティクルをまとめて管理するクラス
+// コイン用／敵用など、用途ごとにインスタンスを分けて使う
 // ---------------------------------------------
 class ParticleManager {
 public:
 	~ParticleManager();
 
-	void Initialize();
+	// modelName: 使用するモデル名（例："cube"、"particle_coin"、"particle_enemy"）
+	void Initialize(const std::string& modelName = "cube");
 	void Update();
 	void Draw(const Camera& camera);
 
@@ -29,7 +32,6 @@ public:
 	void Spawn(const Vector3& position);
 
 private:
-	// 後で専用パーティクルモデルに差し替える場所
 	Model* model_ = nullptr;
 	std::list<ParticleData*> particles_;
 };

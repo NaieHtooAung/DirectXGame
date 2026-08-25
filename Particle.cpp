@@ -7,10 +7,8 @@ ParticleManager::~ParticleManager() {
 	}
 }
 
-void ParticleManager::Initialize() {
-	// 後で専用パーティクルモデルに差し替える場所
-	// model_ = Model::CreateFromOBJ("particle", true);
-	model_ = Model::CreateFromOBJ("cube", true);
+void ParticleManager::Initialize(const std::string& modelName) {
+	model_ = Model::CreateFromOBJ(modelName, true);
 }
 
 void ParticleManager::Spawn(const Vector3& position) {

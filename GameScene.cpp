@@ -8,7 +8,8 @@ GameScene::~GameScene() {
 	for (auto* c : coins_) {
 		delete c;
 	}
-	delete particleManager_;
+	delete coinParticle_;
+	delete enemyParticle_;
 	delete fadeSprite_;
 	delete titleSprite_;
 	delete endSprite_;
@@ -18,6 +19,11 @@ GameScene::~GameScene() {
 
 void GameScene::Initialize() {
 	// ---- 3Dカメラの初期化（プレイヤーの少し後ろ上から見下ろす）----
+
+	Audio* audio = Audio::GetInstance();
+	bgmSoundHandle_ = audio->LoadWave("./Resources/sound/game_bgm.mp3");
+	bgmVoiceHandle_ = audio->PlayWave(bgmSoundHandle_, true); // 第2引数true = ループ再生
+
 	camera_.Initialize();
 	camera_.translation_ = { 0.0f, 5.0f, -20.0f };
 	camera_.rotation_.x = 0.3f;
@@ -25,8 +31,12 @@ void GameScene::Initialize() {
 	player_ = new Player();
 	player_->Initialize();
 
-	particleManager_ = new ParticleManager();
-	particleManager_->Initialize();
+	// ---- パーティクル：コイン用と敵用でモデルを分けて初期化 ----
+	coinParticle_ = new ParticleManager();
+	coinParticle_->Initialize("star"); // 後でコイン用パーティクルモデルに差し替える場所
+
+	enemyParticle_ = new ParticleManager();
+	enemyParticle_->Initialize("particle"); // 後で敵用パーティクルモデルに差し替える場所
 
 	ground_ = new Ground();
 	ground_->Initialize();
@@ -215,13 +225,13 @@ void GameScene::UpdateGame() {
 		// ---- プレイヤーの攻撃が当たったら敵を倒す（フィードバック）----
 		if (player_->IsAttacking() && distSq < 4.0f) {
 			enemy->Kill();
-			particleManager_->Spawn(ep);
+			enemyParticle_->Spawn(ep);
 			// Audio::GetInstance()->PlayWave(seHitHandle_);
 		}
 		// ---- 敵に接触したらダメージ ----
 		else if (distSq < 1.5f) {
 			player_->TakeDamage();
-			particleManager_->Spawn(pp);
+			enemyParticle_->Spawn(pp);
 			enemy->PushBack();
 			if (player_->IsDead()) {
 				// ---- ゲーム→エンド（負け）----
@@ -243,7 +253,7 @@ void GameScene::UpdateGame() {
 			float dz = pp.z - cp.z;
 			if (dx * dx + dz * dz < 1.5f) {
 				coin->Get();
-				particleManager_->Spawn(cp);
+				coinParticle_->Spawn(cp);
 			}
 		}
 		if (!coin->IsGot()) {
@@ -264,7 +274,8 @@ void GameScene::UpdateGame() {
 		}
 	}
 
-	particleManager_->Update();
+	coinParticle_->Update();
+	enemyParticle_->Update();
 }
 
 void GameScene::UpdateStageClear() {
@@ -315,7 +326,8 @@ void GameScene::Draw() {
 		for (auto* coin : coins_) {
 			coin->Draw(camera_);
 		}
-		particleManager_->Draw(camera_);
+		coinParticle_->Draw(camera_);
+		enemyParticle_->Draw(camera_);
 		Model::PostDraw();
 	}
 

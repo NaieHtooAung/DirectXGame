@@ -3,7 +3,7 @@
 void Coin::Initialize(const Vector3& position) {
 	// 後でコインモデルに差し替える場所
 	// model_ = Model::CreateFromOBJ("coin", true);
-	model_ = Model::CreateFromOBJ("cube", true);
+	model_ = Model::CreateFromOBJ("Coin", true);
 
 	worldTransform_.Initialize();
 	worldTransform_.translation_ = position;

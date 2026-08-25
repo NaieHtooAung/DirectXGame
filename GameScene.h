@@ -69,7 +69,11 @@ private:
 	Player* player_ = nullptr;
 	std::vector<Enemy*> enemies_;
 	std::vector<Coin*> coins_;
-	ParticleManager* particleManager_ = nullptr;
+
+	// ---- パーティクル：コイン取得用／敵撃破・被弾用で分ける ----
+	ParticleManager* coinParticle_ = nullptr;
+	ParticleManager* enemyParticle_ = nullptr;
+
 	Ground* ground_ = nullptr;
 	SkyDome* skyDome_ = nullptr;
 
@@ -81,6 +85,7 @@ private:
 	uint32_t titleTextureHandle_ = 0;
 	int32_t textureHandleSky_ = 0;
 	Sprite* titleSprite_ = nullptr;
+	uint32_t bgmSoundHandle_ = 0;
 
 	// エンド画面用の色付きオーバーレイ（クリア=緑、ゲームオーバー=赤）
 	Sprite* endSprite_ = nullptr;
