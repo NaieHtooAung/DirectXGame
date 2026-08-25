@@ -1,8 +1,8 @@
 #include "Player.h"
 #include "UpdateMatrix.h"
 void Player::Initialize() {
-	textureHandlePlayer_ = TextureManager::Load("./Resources/player/rabbit.png");
-	model_ = Model::CreateFromOBJ("rabbit", true);
+	textureHandlePlayer_ = TextureManager::Load("./Resources/Player/player.png");
+	model_ = Model::CreateFromOBJ("player", true);
 	
 
 	worldTransform_.Initialize();
