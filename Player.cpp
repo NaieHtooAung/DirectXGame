@@ -38,15 +38,36 @@ void Player::Update() {
 	}
 
 	if (move.x != 0.0f || move.z != 0.0f) {
-		facingDir_ = move; // 攻撃モデルを出す向きとして覚えておく
+		facingDir_ = move; // 攻撃モデル・ダッシュの向きとして覚えておく
 
 		// ---- 移動方向にプレイヤーを向かせる ----
 		float targetAngle = std::atan2(move.x, move.z) + kModelForwardOffset_;
 		worldTransform_.rotation_.y = targetAngle;
 	}
 
-	worldTransform_.translation_.x += move.x * speed_;
-	worldTransform_.translation_.z += move.z * speed_;
+	// ---- ダッシュ開始判定（クールダウン中は不可）----
+	if (input->TriggerKey(DIK_LSHIFT) && dashTimer_ <= 0 && dashCooldownTimer_ <= 0) {
+		dashTimer_ = kDashDuration_;
+		dashCooldownTimer_ = kDashCooldown_;
+	}
+
+	// ---- ダッシュ中は移動方向（facingDir_）へ速度アップして進む ----
+	float currentSpeed = speed_;
+	if (dashTimer_ > 0) {
+		currentSpeed = speed_ * kDashSpeedMultiplier_;
+		Vector3 dashMove = facingDir_;
+		worldTransform_.translation_.x += dashMove.x * currentSpeed;
+		worldTransform_.translation_.z += dashMove.z * currentSpeed;
+		dashTimer_--;
+	}
+	else {
+		worldTransform_.translation_.x += move.x * currentSpeed;
+		worldTransform_.translation_.z += move.z * currentSpeed;
+	}
+
+	if (dashCooldownTimer_ > 0) {
+		dashCooldownTimer_--;
+	}
 
 	// 移動範囲を制限（clampを使わず手動で）
 	if (worldTransform_.translation_.x < -10.0f) {
@@ -100,6 +121,8 @@ void Player::Reset() {
 	worldTransform_.rotation_ = { 0.0f, 0.0f, 0.0f };
 	hp_ = 3;
 	attackTimer_ = 0;
+	dashTimer_ = 0;
+	dashCooldownTimer_ = 0;
 	facingDir_ = { 0.0f, 0.0f, 1.0f };
 	worldTransform_.matWorld_ = MakeAffineMatrix(worldTransform_.scale_, worldTransform_.rotation_, worldTransform_.translation_);
 	worldTransform_.TransferMatrix();

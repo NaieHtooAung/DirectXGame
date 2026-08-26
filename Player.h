@@ -4,7 +4,7 @@
 using namespace KamataEngine;
 
 // ---------------------------------------------
-// プレイヤーアクション（移動・攻撃）を担当するクラス（3D版）
+// プレイヤーアクション（移動・攻撃・ダッシュ）を担当するクラス（3D版）
 // ---------------------------------------------
 class Player {
 public:
@@ -15,6 +15,7 @@ public:
 
 	Vector3 GetPosition() const { return worldTransform_.translation_; }
 	bool IsAttacking() const { return attackTimer_ > 0; }
+	bool IsDashing() const { return dashTimer_ > 0; }
 	int32_t GetHP() const { return hp_; }
 	void TakeDamage() { hp_--; }
 	bool IsDead() const { return hp_ <= 0; }
@@ -33,7 +34,14 @@ private:
 	int32_t attackTimer_ = 0;
 	static const int32_t kAttackDuration_ = 15;
 
-	// 攻撃モデルを出す向き（最後に動いた方向）
+	// ---- ダッシュ（プレイヤーアクション：一定時間だけ移動速度アップ）----
+	int32_t dashTimer_ = 0;         // ダッシュ中の残りフレーム数（0以下ならダッシュしていない）
+	int32_t dashCooldownTimer_ = 0; // 次のダッシュまでのクールダウン残りフレーム数
+	static const int32_t kDashDuration_ = 12;      // ダッシュが持続するフレーム数（約0.2秒@60fps）
+	static const int32_t kDashCooldown_ = 45;      // 次にダッシュできるまでの待ち時間（約0.75秒@60fps）
+	static constexpr float kDashSpeedMultiplier_ = 3.0f; // ダッシュ中の速度倍率
+
+	// 攻撃モデルを出す向き（最後に動いた方向）／ダッシュ方向にも流用
 	Vector3 facingDir_ = { 0.0f, 0.0f, 1.0f };
 
 	// モデルの正面とテクスチャの「顔」が描かれた面がズレている場合の補正角（ラジアン）

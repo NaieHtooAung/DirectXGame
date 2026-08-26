@@ -170,6 +170,7 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Particle.cpp" />
     <ClCompile Include="Player.cpp" />
+    <ClCompile Include="PressBText.cpp" />
     <ClCompile Include="PressEnterText.cpp" />
     <ClCompile Include="PressRText.cpp" />
     <ClCompile Include="Skydome.cpp" />
@@ -279,6 +280,7 @@
     <ClInclude Include="Ground.h" />
     <ClInclude Include="Particle.h" />
     <ClInclude Include="Player.h" />
+    <ClInclude Include="PressBText.h" />
     <ClInclude Include="PressEnterText.h" />
     <ClInclude Include="PressRText.h" />
     <ClInclude Include="Skydome.h" />

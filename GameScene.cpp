@@ -1,5 +1,6 @@
 #include "GameScene.h"
-
+#include <cmath>
+#include "UpdateMatrix.h"
 GameScene::~GameScene() {
 	delete player_;
 	for (auto* e : enemies_) {
@@ -13,6 +14,7 @@ GameScene::~GameScene() {
 	delete fadeSprite_;
 	delete titleSprite_;
 	delete explanationSprite_;
+	delete startModel_;
 	delete gameClearSprite_;
 	delete gameOverSprite_;
 	delete endSprite_;
@@ -20,6 +22,11 @@ GameScene::~GameScene() {
 	delete skyDome_;
 	delete pressEnterText_;
 	delete pressRText_;
+	delete pressBText_;
+	for (int32_t i = 0; i < kMaxHP_; i++) {
+		delete hpBlockBg_[i];
+		delete hpBlockFg_[i];
+	}
 }
 
 void GameScene::Initialize() {
@@ -32,6 +39,7 @@ void GameScene::Initialize() {
 	camera_.Initialize();
 	camera_.translation_ = { 0.0f, 5.0f, -20.0f };
 	camera_.rotation_.x = 0.3f;
+	camera_.UpdateMatrix();
 
 	player_ = new Player();
 	player_->Initialize();
@@ -50,12 +58,22 @@ void GameScene::Initialize() {
 	skyDome_->Initialize();
 
 	// ---- 浮遊する3D文字 ----
-// Resources/pressEnter/pressEnter.obj, Resources/pressR/pressR.obj を用意する場所
+	// Resources/pressEnter/pressEnter.obj, Resources/pressR/pressR.obj, Resources/pressB/pressB.obj を用意する場所
 	pressEnterText_ = new PressEnterText();
-	pressEnterText_->Initialize({ 0.0f, -7.5f, 0.0f });
+	pressEnterText_->Initialize({ -5.0f, -7.5f, 0.0f });
 
 	pressRText_ = new PressRText();
 	pressRText_->Initialize({ 0.0f, -5.5f, 0.0f });
+
+	pressBText_ = new PressBText();
+	pressBText_->Initialize({ 0.0f, 1.5f, 0.0f }); // ポーズ中、画面中央付近に浮かせる想定の位置。お好みで調整
+
+	// ---- ゲーム開始時に表示する"Start!"の3Dモデル（説明画面→ゲーム本編に切り替わった瞬間だけ出す） ----
+// Resources/Start/Start.obj を用意する場所
+	startModel_ = Model::CreateFromOBJ("start", true);
+	startWorldTransform_.Initialize();
+	startWorldTransform_.scale_ = { kStartPopupStartScale_, kStartPopupStartScale_, kStartPopupStartScale_ };
+	startWorldTransform_.TransferMatrix();
 
 	// ---- タイトル画像（2Dスプライト）：不透明で表示し、Press Enterの3D文字を上に重ねる ----
 	// 用意した画像に差し替える場所
@@ -91,6 +109,22 @@ void GameScene::Initialize() {
 	// エンド画面用オーバーレイ（クリア/ゲームオーバー/ステージクリア/ポーズの色分けに流用）
 	endSprite_ = Sprite::Create(blackTextureHandle_, { 0.0f, 0.0f });
 	endSprite_->SetSize({ 1280.0f, 720.0f });
+
+	// ---- HPバー：白1x1テクスチャを色付きブロックとして3つ並べる（左上）----
+	for (int32_t i = 0; i < kMaxHP_; i++) {
+		float x = 20.0f + float(i) * float(kHPBlockWidth_ + kHPBlockGap_);
+		float y = 20.0f;
+
+		// 背景（空スロット）：常に表示される暗い枠
+		hpBlockBg_[i] = Sprite::Create(blackTextureHandle_, { x, y });
+		hpBlockBg_[i]->SetSize({ float(kHPBlockWidth_), float(kHPBlockHeight_) });
+		hpBlockBg_[i]->SetColor({ 0.15f, 0.15f, 0.15f, 0.6f });
+
+		// 前景（残りHP）：hp_の数だけ描画され、被弾すると消える
+		hpBlockFg_[i] = Sprite::Create(blackTextureHandle_, { x, y });
+		hpBlockFg_[i]->SetSize({ float(kHPBlockWidth_), float(kHPBlockHeight_) });
+		hpBlockFg_[i]->SetColor({ 0.9f, 0.1f, 0.1f, 1.0f });
+	}
 
 	// ---- 1ステージ目を読み込む ----
 	currentStage_ = 1;
@@ -221,6 +255,12 @@ void GameScene::Update() {
 		isPaused_ = !isPaused_;
 	}
 
+	// ---- ポーズ中にBキー：タイトル画面へフェードして戻る（ゲームの状態はリセット）----
+	if (scene_ == Scene::kGame && isPaused_ && !isFading_ && input->TriggerKey(DIK_B)) {
+		isPaused_ = false;
+		StartTransition(Scene::kStart, [this]() { Reset(); });
+	}
+
 	if (isFading_) {
 		UpdateTransition();
 	}
@@ -246,13 +286,57 @@ void GameScene::Update() {
 		}
 	}
 
+	// ---- "Start!"ポップアップ：表示中は浮遊アニメーションさせつつタイマーを進め、
+	//      最後の数フレームで縮小させてフェードアウトのように消す ----
+		// ---- "Start!"ポップアップ：奥から手前へ近づきながら大きくなり、少し浮遊した後、
+	//      最後に縮んで消える。カメラの動きに追従させるので毎フレーム位置を計算し直す ----
+	if (showStartPopup_) {
+		startPopupTimer_--;
+
+		int32_t elapsed = kStartPopupDuration_ - startPopupTimer_; // 表示してから経過したフレーム数
+
+		float scale = 1.0f;
+		float zOffset = kStartPopupNearZOffset_;
+
+		if (elapsed <= kStartPopupGrowFrames_) {
+			// ---- 登場演出：奥→手前、小さい→等倍 ----
+			float t = float(elapsed) / float(kStartPopupGrowFrames_);
+			scale = kStartPopupStartScale_ + (1.0f - kStartPopupStartScale_) * t;
+			zOffset = kStartPopupFarZOffset_ + (kStartPopupNearZOffset_ - kStartPopupFarZOffset_) * t;
+		}
+		else if (startPopupTimer_ <= kStartPopupFadeFrames_) {
+			// ---- 退場演出：等倍→縮んで消える ----
+			float t = float(startPopupTimer_) / float(kStartPopupFadeFrames_);
+			if (t < 0.0f) {
+				t = 0.0f;
+			}
+			scale = t;
+		}
+
+		// ---- 停止中（登場後〜退場前）は少しだけ上下に浮遊させる ----
+		float bobY = std::sinf(float(startPopupTimer_) * 0.2f) * 0.2f;
+
+		startWorldTransform_.scale_ = { scale, scale, scale };
+		startWorldTransform_.translation_.x = camera_.translation_.x;
+		startWorldTransform_.translation_.y = camera_.translation_.y + kStartPopupHeightOffset_ + bobY;
+		startWorldTransform_.translation_.z = camera_.translation_.z + zOffset;
+		startWorldTransform_.TransferMatrix();
+
+		if (startPopupTimer_ <= 0) {
+			showStartPopup_ = false;
+		}
+	}
+
 	// ---- 浮遊する3D文字はフェード中も含めて常にアニメーションさせる ----
-	// ---- "Press Enter"はタイトルと説明画面の両方で表示するので両方で更新する ----
+	// ---- "Press Enter"はタイトル・説明の2画面で表示するのでまとめて更新する ----
 	if (scene_ == Scene::kStart || scene_ == Scene::kExplanation) {
 		pressEnterText_->Update();
 	}
 	if (scene_ == Scene::kEnd) {
 		pressRText_->Update();
+	}
+	if (scene_ == Scene::kGame && isPaused_) {
+		pressBText_->Update();
 	}
 }
 
@@ -268,9 +352,20 @@ void GameScene::UpdateStart() {
 void GameScene::UpdateExplanation() {
 	Input* input = Input::GetInstance();
 
-	// ---- 説明画面：Enterでゲーム本編へフェード ----
+	// ---- 説明画面：Enterでゲーム本編へフェード。フェードが黒くなりきってシーンが切り替わった
+	//      瞬間に"Start!"の3Dモデルをカメラの奥・小さい状態にリセットして表示を開始する ----
 	if (input->TriggerKey(DIK_RETURN)) {
-		StartTransition(Scene::kGame);
+		StartTransition(Scene::kGame, [this]() {
+			showStartPopup_ = true;
+			startPopupTimer_ = kStartPopupDuration_;
+			startWorldTransform_.scale_ = { kStartPopupStartScale_, kStartPopupStartScale_, kStartPopupStartScale_ };
+			startWorldTransform_.translation_ = {
+				camera_.translation_.x,
+				camera_.translation_.y + kStartPopupHeightOffset_,
+				camera_.translation_.z + kStartPopupFarZOffset_
+			};
+			startWorldTransform_.TransferMatrix();
+			});
 	}
 }
 
@@ -369,6 +464,7 @@ void GameScene::UpdateStageClear() {
 		LoadStage(currentStage_ + 1);
 		player_->Reset();
 		camera_.translation_ = { 0.0f, 5.0f, -20.0f };
+		camera_.UpdateMatrix();
 		scene_ = Scene::kGame;
 	}
 }
@@ -386,7 +482,9 @@ void GameScene::Reset() {
 	player_->Reset();
 	LoadStage(1);
 	camera_.translation_ = { 0.0f, 5.0f, -20.0f };
+	camera_.UpdateMatrix();
 	isPaused_ = false;
+	showStartPopup_ = false; // タイトルへ戻った場合などはポップアップを出したままにしない
 }
 
 void GameScene::Draw() {
@@ -432,9 +530,26 @@ void GameScene::Draw() {
 		for (auto* coin : coins_) {
 			coin->Draw(camera_);
 		}
+		// ---- ゲーム開始直後だけ表示する"Start!"の3Dモデル ----
+		if (showStartPopup_) {
+			startModel_->Draw(startWorldTransform_, camera_);
+		}
 		coinParticle_->Draw(camera_);
 		enemyParticle_->Draw(camera_);
 		Model::PostDraw();
+
+		// ---- HPバー：ゲームプレイ中（ステージクリア演出も含む）は常に表示 ----
+		if (scene_ == Scene::kGame || scene_ == Scene::kStageClear) {
+			Sprite::PreDraw(dxCommon->GetCommandList());
+			int32_t hp = player_->GetHP();
+			for (int32_t i = 0; i < kMaxHP_; i++) {
+				hpBlockBg_[i]->Draw();
+				if (i < hp) {
+					hpBlockFg_[i]->Draw();
+				}
+			}
+			Sprite::PostDraw();
+		}
 
 		// ---- ポーズ中：半透明の暗いオーバーレイを表示 ----
 		if (scene_ == Scene::kGame && isPaused_) {
@@ -442,6 +557,12 @@ void GameScene::Draw() {
 			endSprite_->SetColor({ 0.0f, 0.0f, 0.0f, 0.5f });
 			endSprite_->Draw();
 			Sprite::PostDraw();
+
+			// ---- "Press B"の3D文字：オーバーレイの上に必ず見えるように深度クリアしてから描画 ----
+			dxCommon->ClearDepthBuffer();
+			Model::PreDraw();
+			pressBText_->Draw(camera_);
+			Model::PostDraw();
 		}
 
 		if (scene_ == Scene::kStageClear) {

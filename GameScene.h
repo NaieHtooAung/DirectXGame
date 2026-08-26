@@ -10,6 +10,7 @@
 #include "SkyDome.h"
 #include "PressEnterText.h"
 #include "PressRText.h"
+#include "PressBText.h"
 
 using namespace KamataEngine;
 
@@ -39,7 +40,7 @@ private:
 	void UpdateStageClear();
 	void UpdateEnd();
 
-	// ゲームの状態を初期値に戻す（エンド→ゲームのループで使う）
+	// ゲームの状態を初期値に戻す（エンド→ゲームのループ、ポーズ→タイトルへ戻る時などで使う）
 	void Reset();
 
 	// 指定したステージ番号の敵・コイン配置を読み込む（難易度がだんだん上がる）
@@ -109,7 +110,34 @@ private:
 	// エンド画面用の色付きオーバーレイ（クリア=緑、ゲームオーバー=赤）／ポーズ中の暗転オーバーレイにも流用
 	Sprite* endSprite_ = nullptr;
 
-	// ---- 浮遊する3D文字（タイトルの"Press Enter"／リトライ待ちの"Press R"）----
+	// ---- 浮遊する3D文字（タイトルの"Press Enter"／リトライ待ちの"Press R"／ポーズ中の"Press B"）----
 	PressEnterText* pressEnterText_ = nullptr;
 	PressRText* pressRText_ = nullptr;
+	PressBText* pressBText_ = nullptr;
+
+		// ---- ゲーム開始時に一瞬表示する"Start!"の3Dモデル ----
+	// 説明画面→ゲーム本編へフェードした直後に表示する。カメラを基準にした位置に毎フレーム追従させ、
+	// 最初は奥・小さい状態から手前・等倍まで近づきながら大きくなり、少し浮遊した後、
+	// 最後に縮みながら消える。専用クラスは作らずGameScene内で直接Model+WorldTransformを扱う。
+	// Resources/Start/Start.obj を用意する場所
+	Model* startModel_ = nullptr;
+	WorldTransform startWorldTransform_;
+	bool showStartPopup_ = false;
+	int32_t startPopupTimer_ = 0;
+	static const int32_t kStartPopupDuration_ = 60;        // 表示している総フレーム数（約1秒/60fps想定）
+	static const int32_t kStartPopupGrowFrames_ = 20;      // 奥→手前・小→大きくなるまでのフレーム数
+	static const int32_t kStartPopupFadeFrames_ = 15;      // 最後にこのフレーム数だけ縮んで消える
+	static constexpr float kStartPopupFarZOffset_ = 40.0f;   // 登場開始時：カメラからこれだけ奥（遠く）に置く
+	static constexpr float kStartPopupNearZOffset_ = 15.0f;  // 登場完了後：カメラの前のこの距離で止まる
+	static constexpr float kStartPopupHeightOffset_ = 3.0f;  // カメラを基準にした高さ
+	static constexpr float kStartPopupStartScale_ = 0.1f;    // 登場開始時の小ささ（等倍=1.0f）
+
+	// ---- HPバー：画像不要、白1x1テクスチャを色付きブロックとして3つ並べる ----
+	// 被弾するとhp_が減り、その分のブロックが描画されなくなる（背景の暗い枠は残る）
+	static const int32_t kMaxHP_ = 3;
+	static const int32_t kHPBlockWidth_ = 50;
+	static const int32_t kHPBlockHeight_ = 30;
+	static const int32_t kHPBlockGap_ = 10;
+	Sprite* hpBlockBg_[kMaxHP_] = { nullptr, nullptr, nullptr }; // 空スロットの暗い枠（常に表示）
+	Sprite* hpBlockFg_[kMaxHP_] = { nullptr, nullptr, nullptr }; // 残りHP分だけ表示する赤ブロック
 };

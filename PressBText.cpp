@@ -1,31 +1,32 @@
-#include "PressEnterText.h"
+#include "PressBText.h"
 #include "UpdateMatrix.h"
 #include <cmath>
 
 using namespace KamataEngine;
 
-PressEnterText::~PressEnterText() {
+PressBText::~PressBText() {
 	delete model_;
 }
 
-void PressEnterText::Initialize(const Vector3& basePosition) {
-	// ---- Resources/pressEnter/pressEnter.png と pressEnter.obj を用意する場所 ----
-	//textureHandle_ = TextureManager::Load("./Resources/pressEnter/pressEnter.png");
-	model_ = Model::CreateFromOBJ("pressEnter", true);
+void PressBText::Initialize(const Vector3& basePosition) {
+	// ---- Resources/pressB/pressB.obj を用意する場所 ----
+	model_ = Model::CreateFromOBJ("pressB", true);
 
 	basePosition_ = basePosition;
 	worldTransform_.Initialize();
 	worldTransform_.translation_ = basePosition_;
 
-	// ---- 90度回転（上から見えるように寝かせる）----
+	// ---- 90度回転（寝ている状態から立たせる）----
+	worldTransform_.rotation_.x = 1.5708f; // 追加：X軸-90度で立たせる
+	worldTransform_.rotation_.y = 3.14159f; // 180度回転してカメラ側を向かせる
+
 	
-	worldTransform_.rotation_.y = 3.14159f; // spin it 180° around to face the other way, without flipping upside down
 
 	// ---- サイズを大きくする ----
 	worldTransform_.scale_ = { 2.0f, 2.0f, 2.0f };
 }
 
-void PressEnterText::Update() {
+void PressBText::Update() {
 	// ---- サイン波でY座標を上下させて浮遊感を出す ----
 	floatTimer_ += kFloatSpeed_;
 	worldTransform_.translation_ = basePosition_;
@@ -35,7 +36,7 @@ void PressEnterText::Update() {
 	worldTransform_.TransferMatrix();
 }
 
-void PressEnterText::Draw(const Camera& camera) {
+void PressBText::Draw(const Camera& camera) {
 	if (model_) {
 		model_->Draw(worldTransform_, camera, textureHandle_);
 	}
