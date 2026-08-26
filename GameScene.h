@@ -106,7 +106,7 @@ private:
 	Sprite* gameClearSprite_ = nullptr;
 	Sprite* gameOverSprite_ = nullptr;
 
-	// エンド画面用の色付きオーバーレイ（クリア=緑、ゲームオーバー=赤）
+	// エンド画面用の色付きオーバーレイ（クリア=緑、ゲームオーバー=赤）／ポーズ中の暗転オーバーレイにも流用
 	Sprite* endSprite_ = nullptr;
 
 	// ---- 浮遊する3D文字（タイトルの"Press Enter"／リトライ待ちの"Press R"）----

@@ -88,7 +88,7 @@ void GameScene::Initialize() {
 	gameOverSprite_->SetSize({ 1280.0f, 720.0f });
 	gameOverSprite_->SetColor({ 1.0f, 1.0f, 1.0f, 1.0f });
 
-	// エンド画面用オーバーレイ（クリア/ゲームオーバー/ステージクリアの色分けに流用）
+	// エンド画面用オーバーレイ（クリア/ゲームオーバー/ステージクリア/ポーズの色分けに流用）
 	endSprite_ = Sprite::Create(blackTextureHandle_, { 0.0f, 0.0f });
 	endSprite_->SetSize({ 1280.0f, 720.0f });
 
@@ -215,8 +215,9 @@ void GameScene::UpdateTransition() {
 void GameScene::Update() {
 	Input* input = Input::GetInstance();
 
-	// ---- ポーズメニュー（フェード中は無効）----
-	if (scene_ == Scene::kGame && !isFading_ && input->TriggerKey(DIK_ESCAPE)) {
+	// ---- ポーズメニュー（フェード中は無効）：ESCまたはPキーでトグル ----
+	if (scene_ == Scene::kGame && !isFading_ &&
+		(input->TriggerKey(DIK_ESCAPE) || input->TriggerKey(DIK_P))) {
 		isPaused_ = !isPaused_;
 	}
 
@@ -308,8 +309,11 @@ void GameScene::UpdateGame() {
 			enemyParticle_->Spawn(pp);
 			enemy->PushBack();
 			if (player_->IsDead()) {
-				// ---- 負け：ゲームをフェードアウトし、黒くなった瞬間にエンド画面へ切り替える ----
+				// ---- 負け：カメラを固定位置に戻してからフェードアウトし、黒くなった瞬間にエンド画面へ切り替える ----
 				won_ = false;
+				isPaused_ = false;
+				camera_.translation_ = { 0.0f, 5.0f, -20.0f };
+				camera_.UpdateMatrix();
 				StartTransition(Scene::kEnd);
 				return; // このフレームはこれ以上ゲーム更新をしない
 			}
@@ -343,8 +347,11 @@ void GameScene::UpdateGame() {
 			stageClearTimer_ = kStageClearDuration_;
 		}
 		else {
-			// ---- 勝ち：ゲームをフェードアウトし、黒くなった瞬間にエンド画面へ切り替える ----
+			// ---- 勝ち：カメラを固定位置に戻してからフェードアウトし、黒くなった瞬間にエンド画面へ切り替える ----
 			won_ = true;
+			isPaused_ = false;
+			camera_.translation_ = { 0.0f, 5.0f, -20.0f };
+			camera_.UpdateMatrix();
 			StartTransition(Scene::kEnd);
 			// Audio::GetInstance()->PlayWave(seClearHandle_);
 			return;
@@ -379,6 +386,7 @@ void GameScene::Reset() {
 	player_->Reset();
 	LoadStage(1);
 	camera_.translation_ = { 0.0f, 5.0f, -20.0f };
+	isPaused_ = false;
 }
 
 void GameScene::Draw() {
@@ -427,6 +435,14 @@ void GameScene::Draw() {
 		coinParticle_->Draw(camera_);
 		enemyParticle_->Draw(camera_);
 		Model::PostDraw();
+
+		// ---- ポーズ中：半透明の暗いオーバーレイを表示 ----
+		if (scene_ == Scene::kGame && isPaused_) {
+			Sprite::PreDraw(dxCommon->GetCommandList());
+			endSprite_->SetColor({ 0.0f, 0.0f, 0.0f, 0.5f });
+			endSprite_->Draw();
+			Sprite::PostDraw();
+		}
 
 		if (scene_ == Scene::kStageClear) {
 			// ---- ステージクリア演出：金色の半透明オーバーレイ ----
