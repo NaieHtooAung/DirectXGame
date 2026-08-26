@@ -12,9 +12,14 @@ GameScene::~GameScene() {
 	delete enemyParticle_;
 	delete fadeSprite_;
 	delete titleSprite_;
+	delete explanationSprite_;
+	delete gameClearSprite_;
+	delete gameOverSprite_;
 	delete endSprite_;
 	delete ground_;
 	delete skyDome_;
+	delete pressEnterText_;
+	delete pressRText_;
 }
 
 void GameScene::Initialize() {
@@ -44,16 +49,44 @@ void GameScene::Initialize() {
 	skyDome_ = new SkyDome();
 	skyDome_->Initialize();
 
-	// フェード用オーバーレイ（2Dスプライト）
+	// ---- 浮遊する3D文字 ----
+// Resources/pressEnter/pressEnter.obj, Resources/pressR/pressR.obj を用意する場所
+	pressEnterText_ = new PressEnterText();
+	pressEnterText_->Initialize({ 0.0f, -7.5f, 0.0f });
+
+	pressRText_ = new PressRText();
+	pressRText_->Initialize({ 0.0f, -5.5f, 0.0f });
+
+	// ---- タイトル画像（2Dスプライト）：不透明で表示し、Press Enterの3D文字を上に重ねる ----
+	// 用意した画像に差し替える場所
+	titleTextureHandle_ = TextureManager::GetInstance()->Load("./Resources/images/CoinCollector.png");
+	titleSprite_ = Sprite::Create(titleTextureHandle_, { 0.0f, 0.0f });
+	titleSprite_->SetSize({ 1280.0f, 720.0f });
+	titleSprite_->SetColor({ 1.0f, 1.0f, 1.0f, 1.0f }); // 不透明（ぼかし無し）
+
+	// ---- 説明画面（タイトルとゲームの間）用スプライト ----
+	// 用意した説明用画像に差し替える場所。今は仮でsample.pngを使い回している
+	explanationTextureHandle_ = TextureManager::GetInstance()->Load("./Resources/images/Explanation.png");
+	explanationSprite_ = Sprite::Create(explanationTextureHandle_, { 0.0f, 0.0f });
+	explanationSprite_->SetSize({ 1280.0f, 720.0f });
+	explanationSprite_->SetColor({ 1.0f, 1.0f, 1.0f, 1.0f });
+
+	// ---- フェード用オーバーレイ（2Dスプライト）----
 	blackTextureHandle_ = TextureManager::GetInstance()->Load("white1x1.png");
 	fadeSprite_ = Sprite::Create(blackTextureHandle_, { 0.0f, 0.0f });
 	fadeSprite_->SetSize({ 1280.0f, 720.0f });
 
-	// タイトル画像（2Dスプライト）
-	// 用意した画像に差し替える場所
-	titleTextureHandle_ = TextureManager::GetInstance()->Load("sample.png");
-	titleSprite_ = Sprite::Create(titleTextureHandle_, { 0.0f, 0.0f });
-	titleSprite_->SetSize({ 1280.0f, 720.0f });
+	// ---- 結果画面画像（クリア／ゲームオーバー）：不透明で表示し、Press Rの3D文字を上に重ねる ----
+	// 用意した画像に差し替える場所。今は仮でsample.pngを使い回している
+	gameClearTextureHandle_ = TextureManager::GetInstance()->Load("./Resources/images/Win.png");
+	gameClearSprite_ = Sprite::Create(gameClearTextureHandle_, { 0.0f, 0.0f });
+	gameClearSprite_->SetSize({ 1280.0f, 720.0f });
+	gameClearSprite_->SetColor({ 1.0f, 1.0f, 1.0f, 1.0f });
+
+	gameOverTextureHandle_ = TextureManager::GetInstance()->Load("./Resources/images/Lose.png");
+	gameOverSprite_ = Sprite::Create(gameOverTextureHandle_, { 0.0f, 0.0f });
+	gameOverSprite_->SetSize({ 1280.0f, 720.0f });
+	gameOverSprite_->SetColor({ 1.0f, 1.0f, 1.0f, 1.0f });
 
 	// エンド画面用オーバーレイ（クリア/ゲームオーバー/ステージクリアの色分けに流用）
 	endSprite_ = Sprite::Create(blackTextureHandle_, { 0.0f, 0.0f });
@@ -147,55 +180,96 @@ void GameScene::LoadStage(int32_t stageNumber) {
 	}
 }
 
+// ---- フェード遷移を開始する：黒くなった瞬間にシーンを切り替え、onCompleteを1回だけ実行する ----
+void GameScene::StartTransition(Scene target, std::function<void()> onComplete) {
+	isFading_ = true;
+	fadingOut_ = true;
+	fadeTargetScene_ = target;
+	onFadeComplete_ = onComplete;
+}
+
+void GameScene::UpdateTransition() {
+	if (fadingOut_) {
+		// ---- 黒くしていく途中 ----
+		fade_ += kFadeSpeed_;
+		if (fade_ >= 1.0f) {
+			fade_ = 1.0f;
+			scene_ = fadeTargetScene_;
+			if (onFadeComplete_) {
+				onFadeComplete_();
+				onFadeComplete_ = nullptr;
+			}
+			fadingOut_ = false; // 次のUpdateから黒→見える側にフェードしていく
+		}
+	}
+	else {
+		// ---- 黒から戻していく途中 ----
+		fade_ -= kFadeSpeed_;
+		if (fade_ <= 0.0f) {
+			fade_ = 0.0f;
+			isFading_ = false;
+		}
+	}
+}
+
 void GameScene::Update() {
 	Input* input = Input::GetInstance();
 
-	// ---- ポーズメニュー ----
-	if (scene_ == Scene::kGame && input->TriggerKey(DIK_ESCAPE)) {
+	// ---- ポーズメニュー（フェード中は無効）----
+	if (scene_ == Scene::kGame && !isFading_ && input->TriggerKey(DIK_ESCAPE)) {
 		isPaused_ = !isPaused_;
 	}
 
-	switch (scene_) {
-	case Scene::kStart:
-		UpdateStart();
-		break;
-	case Scene::kGame:
-		if (!isPaused_) {
-			UpdateGame();
+	if (isFading_) {
+		UpdateTransition();
+	}
+	else {
+		switch (scene_) {
+		case Scene::kStart:
+			UpdateStart();
+			break;
+		case Scene::kExplanation:
+			UpdateExplanation();
+			break;
+		case Scene::kGame:
+			if (!isPaused_) {
+				UpdateGame();
+			}
+			break;
+		case Scene::kStageClear:
+			UpdateStageClear();
+			break;
+		case Scene::kEnd:
+			UpdateEnd();
+			break;
 		}
-		break;
-	case Scene::kStageClear:
-		UpdateStageClear();
-		break;
-	case Scene::kEnd:
-		UpdateEnd();
-		break;
+	}
+
+	// ---- 浮遊する3D文字はフェード中も含めて常にアニメーションさせる ----
+	// ---- "Press Enter"はタイトルと説明画面の両方で表示するので両方で更新する ----
+	if (scene_ == Scene::kStart || scene_ == Scene::kExplanation) {
+		pressEnterText_->Update();
+	}
+	if (scene_ == Scene::kEnd) {
+		pressRText_->Update();
 	}
 }
 
 void GameScene::UpdateStart() {
 	Input* input = Input::GetInstance();
 
-	if (!isCountingDown_) {
-		// ---- タイトル表示中：Enterでスタート演出へ ----
-		if (input->TriggerKey(DIK_RETURN)) {
-			isCountingDown_ = true;
-			startTimer_ = 60;
-			fade_ = 1.0f;
-			// Audio::GetInstance()->PlayWave(bgmHandle_, true, &bgmVoiceHandle_);
-		}
-		return;
+	// ---- タイトル表示中：Enterで説明画面へフェード ----
+	if (input->TriggerKey(DIK_RETURN)) {
+		StartTransition(Scene::kExplanation);
 	}
+}
 
-	// ---- スタート演出：フェードインしながらカウントダウン ----
-	startTimer_--;
-	if (fade_ > 0.0f) {
-		fade_ -= 0.02f;
-	}
-	if (startTimer_ <= 0) {
-		scene_ = Scene::kGame;
-		isCountingDown_ = false;
-		fade_ = 0.0f;
+void GameScene::UpdateExplanation() {
+	Input* input = Input::GetInstance();
+
+	// ---- 説明画面：Enterでゲーム本編へフェード ----
+	if (input->TriggerKey(DIK_RETURN)) {
+		StartTransition(Scene::kGame);
 	}
 }
 
@@ -234,9 +308,10 @@ void GameScene::UpdateGame() {
 			enemyParticle_->Spawn(pp);
 			enemy->PushBack();
 			if (player_->IsDead()) {
-				// ---- ゲーム→エンド（負け）----
+				// ---- 負け：ゲームをフェードアウトし、黒くなった瞬間にエンド画面へ切り替える ----
 				won_ = false;
-				scene_ = Scene::kEnd;
+				StartTransition(Scene::kEnd);
+				return; // このフレームはこれ以上ゲーム更新をしない
 			}
 		}
 	}
@@ -268,9 +343,11 @@ void GameScene::UpdateGame() {
 			stageClearTimer_ = kStageClearDuration_;
 		}
 		else {
+			// ---- 勝ち：ゲームをフェードアウトし、黒くなった瞬間にエンド画面へ切り替える ----
 			won_ = true;
-			scene_ = Scene::kEnd;
+			StartTransition(Scene::kEnd);
 			// Audio::GetInstance()->PlayWave(seClearHandle_);
+			return;
 		}
 	}
 
@@ -292,10 +369,9 @@ void GameScene::UpdateStageClear() {
 void GameScene::UpdateEnd() {
 	Input* input = Input::GetInstance();
 
-	// ---- エンド→ゲームのループ：Rキーでリセットして再開 ----
+	// ---- リトライ待ち→ゲームのループ：Rキーでフェードしてリセット再開 ----
 	if (input->TriggerKey(DIK_R)) {
-		Reset();
-		scene_ = Scene::kGame;
+		StartTransition(Scene::kGame, [this]() { Reset(); });
 	}
 }
 
@@ -303,20 +379,42 @@ void GameScene::Reset() {
 	player_->Reset();
 	LoadStage(1);
 	camera_.translation_ = { 0.0f, 5.0f, -20.0f };
-	fade_ = 0.0f;
-	stageClearTimer_ = 0;
 }
 
 void GameScene::Draw() {
 	DirectXCommon* dxCommon = DirectXCommon::GetInstance();
 
-	// ---- 3Dモデルの描画（先にPreDraw/PostDrawで挟む）----
-	if (scene_ != Scene::kStart) {
-		// スカイドームはカメラの内側から見るので、カリングを無効にして描画する
-		Model::PreDraw(Model::CullingMode::kNone);
-		skyDome_->Draw(camera_);
-		Model::PostDraw();
+	// ---- スカイドームは常に一番奥に描画（カリング無効）----
+	Model::PreDraw(Model::CullingMode::kNone);
+	skyDome_->Draw(camera_);
+	Model::PostDraw();
 
+	if (scene_ == Scene::kStart) {
+		// ---- タイトル画像を先に不透明で描画（ぼかし無し）----
+		Sprite::PreDraw(dxCommon->GetCommandList());
+		titleSprite_->Draw();
+		Sprite::PostDraw();
+
+		// ---- 深度バッファをクリアしてから"Press Enter"の3D文字を描画：画像に隠れず必ず上に見える ----
+		dxCommon->ClearDepthBuffer();
+		Model::PreDraw();
+		pressEnterText_->Draw(camera_);
+		Model::PostDraw();
+	}
+	else if (scene_ == Scene::kExplanation) {
+		// ---- 説明画面：画像を不透明で表示 ----
+		Sprite::PreDraw(dxCommon->GetCommandList());
+		explanationSprite_->Draw();
+		Sprite::PostDraw();
+
+		// ---- 深度バッファをクリアしてから"Press Enter"の3D文字を描画：画像に隠れず必ず上に見える ----
+		dxCommon->ClearDepthBuffer();
+		Model::PreDraw();
+		pressEnterText_->Draw(camera_);
+		Model::PostDraw();
+	}
+	else {
+		// ---- ゲーム世界の描画（ステージクリア／エンドの背景としても表示）----
 		Model::PreDraw();
 		ground_->Draw(camera_);
 		player_->Draw(camera_);
@@ -329,30 +427,39 @@ void GameScene::Draw() {
 		coinParticle_->Draw(camera_);
 		enemyParticle_->Draw(camera_);
 		Model::PostDraw();
+
+		if (scene_ == Scene::kStageClear) {
+			// ---- ステージクリア演出：金色の半透明オーバーレイ ----
+			Sprite::PreDraw(dxCommon->GetCommandList());
+			endSprite_->SetColor({ 1.0f, 0.85f, 0.0f, 0.35f });
+			endSprite_->Draw();
+			Sprite::PostDraw();
+		}
+		else if (scene_ == Scene::kEnd) {
+			// ---- 先に色つきオーバーレイと結果画像を不透明で描画 ----
+			Sprite::PreDraw(dxCommon->GetCommandList());
+			if (won_) {
+				endSprite_->SetColor({ 0.0f, 0.8f, 0.0f, 0.35f });
+				endSprite_->Draw();
+				gameClearSprite_->Draw();
+			}
+			else {
+				endSprite_->SetColor({ 0.8f, 0.0f, 0.0f, 0.35f });
+				endSprite_->Draw();
+				gameOverSprite_->Draw();
+			}
+			Sprite::PostDraw();
+
+			// ---- 深度バッファをクリアしてから"Press R"の3D文字を描画：画像に隠れず必ず上に見える ----
+			dxCommon->ClearDepthBuffer();
+			Model::PreDraw();
+			pressRText_->Draw(camera_);
+			Model::PostDraw();
+		}
 	}
 
-	// ---- 2Dスプライトの描画（別でPreDraw/PostDrawが必要）----
+	// ---- 画面遷移フェード：常に最前面 ----
 	Sprite::PreDraw(dxCommon->GetCommandList());
-	if (scene_ == Scene::kStart) {
-		// ---- タイトルシーン ----
-		titleSprite_->Draw();
-	}
-	if (scene_ == Scene::kEnd) {
-		// ---- エンドシーン：クリア=緑、ゲームオーバー=赤の半透明オーバーレイ ----
-		if (won_) {
-			endSprite_->SetColor({ 0.0f, 0.8f, 0.0f, 0.5f });
-		}
-		else {
-			endSprite_->SetColor({ 0.8f, 0.0f, 0.0f, 0.5f });
-		}
-		endSprite_->Draw();
-	}
-	if (scene_ == Scene::kStageClear) {
-		// ---- ステージクリア演出：金色の半透明オーバーレイを一瞬挟む ----
-		endSprite_->SetColor({ 1.0f, 0.85f, 0.0f, 0.35f });
-		endSprite_->Draw();
-	}
-	// ---- 画面遷移フェード ----
 	if (fade_ > 0.0f) {
 		fadeSprite_->SetColor({ 0.0f, 0.0f, 0.0f, fade_ });
 		fadeSprite_->Draw();

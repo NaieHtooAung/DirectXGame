@@ -1,23 +1,27 @@
 #pragma once
 #include <KamataEngine.h>
 #include <vector>
+#include <functional>
 #include "Player.h"
 #include "Enemy.h"
 #include "Coin.h"
 #include "Particle.h"
 #include "Ground.h"
 #include "SkyDome.h"
+#include "PressEnterText.h"
+#include "PressRText.h"
 
 using namespace KamataEngine;
 
 // ---------------------------------------------
-// シーン一覧：スタート→ゲーム→エンド→（リトライで）ゲーム、のループ
+// シーン一覧：タイトル→説明→ゲーム→（勝敗が決まったらフェード）→エンド→（Rでフェード）→ゲーム、のループ
 // ---------------------------------------------
 enum class Scene {
 	kStart,
+	kExplanation, // タイトルとゲーム本編の間の説明画面
 	kGame,
-	kStageClear, // ステージクリア演出（次のステージへ行く前のつなぎ）
-	kEnd,
+	kStageClear,  // ステージクリア演出（次のステージへ行く前のつなぎ）
+	kEnd,         // 勝敗結果の表示＋リトライ待ち（Rキーでループ）
 };
 
 class GameScene {
@@ -30,6 +34,7 @@ public:
 
 private:
 	void UpdateStart();
+	void UpdateExplanation();
 	void UpdateGame();
 	void UpdateStageClear();
 	void UpdateEnd();
@@ -42,10 +47,14 @@ private:
 	// 現在の敵・コインを全部消す（LoadStageの前処理）
 	void ClearStageObjects();
 
+	// ---- 画面遷移（フェードアウト→シーン切替→フェードイン）----
+	// onComplete はフェードが完全に黒くなった瞬間（シーン切替と同時）に1回だけ呼ばれる
+	void StartTransition(Scene target, std::function<void()> onComplete = nullptr);
+	void UpdateTransition();
+
 	Scene scene_ = Scene::kStart;
 	bool isPaused_ = false;
-	bool isCountingDown_ = false; // スタート演出中かどうか
-	bool won_ = false;            // エンドの結果（true=クリア, false=ゲームオーバー）
+	bool won_ = false; // 結果（true=クリア, false=ゲームオーバー）
 
 	// ---- ステージ進行（全3ステージ、進むほど難しくする） ----
 	int32_t currentStage_ = 1;
@@ -54,16 +63,16 @@ private:
 	static const int32_t kStageClearDuration_ = 90; // 約1.5秒（60fps想定）
 
 	// ---- 画面遷移（フェード）----
-	float fade_ = 1.0f;
-	int32_t startTimer_ = 0;
+	float fade_ = 0.0f;        // 0=何も無し（見える）, 1=真っ黒
+	bool isFading_ = false;    // フェード演出中かどうか
+	bool fadingOut_ = true;    // true=黒くしていく途中, false=黒から戻していく途中
+	Scene fadeTargetScene_ = Scene::kGame; // フェードが終わった先で切り替えるシーン
+	std::function<void()> onFadeComplete_ = nullptr; // 切替と同時に呼ぶ処理（Resetなど）
+	static constexpr float kFadeSpeed_ = 0.02f;
 
 	// ---- 3Dカメラ（カメラワーク） ----
 	Camera camera_;
 
-	// ---- サウンド（後で実際のファイルに差し替える場所）----
-	// uint32_t bgmHandle_ = Audio::GetInstance()->LoadWave("bgm.wav");
-	// uint32_t seHitHandle_ = Audio::GetInstance()->LoadWave("hit.wav");
-	// uint32_t seClearHandle_ = Audio::GetInstance()->LoadWave("clear.wav");
 	uint32_t bgmVoiceHandle_ = 0u;
 
 	Player* player_ = nullptr;
@@ -87,6 +96,20 @@ private:
 	Sprite* titleSprite_ = nullptr;
 	uint32_t bgmSoundHandle_ = 0;
 
+	// ---- 説明画面用スプライト ----
+	uint32_t explanationTextureHandle_ = 0;
+	Sprite* explanationSprite_ = nullptr;
+
+	// ---- 結果画面用スプライト（クリア画像／ゲームオーバー画像）----
+	uint32_t gameClearTextureHandle_ = 0;
+	uint32_t gameOverTextureHandle_ = 0;
+	Sprite* gameClearSprite_ = nullptr;
+	Sprite* gameOverSprite_ = nullptr;
+
 	// エンド画面用の色付きオーバーレイ（クリア=緑、ゲームオーバー=赤）
 	Sprite* endSprite_ = nullptr;
+
+	// ---- 浮遊する3D文字（タイトルの"Press Enter"／リトライ待ちの"Press R"）----
+	PressEnterText* pressEnterText_ = nullptr;
+	PressRText* pressRText_ = nullptr;
 };

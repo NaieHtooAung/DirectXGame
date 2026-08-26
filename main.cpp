@@ -4,7 +4,7 @@
 using namespace KamataEngine;
 
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
-	KamataEngine::Initialize(L"ミニゲーム");
+	KamataEngine::Initialize(L"スターコレクター");
 
 	DirectXCommon* dxCommon = DirectXCommon::GetInstance();
 
