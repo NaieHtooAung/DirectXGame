@@ -66,7 +66,7 @@ void GameScene::Initialize() {
 	pressRText_->Initialize({ 0.0f, -5.5f, 0.0f });
 
 	pressBText_ = new PressBText();
-	pressBText_->Initialize({ 0.0f, 1.5f, 0.0f }); // ポーズ中、画面中央付近に浮かせる想定の位置。お好みで調整
+	pressBText_->Initialize({ -1.0f, 1.5f, 0.0f }); // ポーズ中、画面中央付近に浮かせる想定の位置。お好みで調整
 
 	// ---- ゲーム開始時に表示する"Start!"の3Dモデル（説明画面→ゲーム本編に切り替わった瞬間だけ出す） ----
 // Resources/Start/Start.obj を用意する場所
@@ -286,9 +286,7 @@ void GameScene::Update() {
 		}
 	}
 
-	// ---- "Start!"ポップアップ：表示中は浮遊アニメーションさせつつタイマーを進め、
-	//      最後の数フレームで縮小させてフェードアウトのように消す ----
-		// ---- "Start!"ポップアップ：奥から手前へ近づきながら大きくなり、少し浮遊した後、
+	// ---- "Start!"ポップアップ：奥から手前へ近づきながら大きくなり、少し浮遊した後、
 	//      最後に縮んで消える。カメラの動きに追従させるので毎フレーム位置を計算し直す ----
 	if (showStartPopup_) {
 		startPopupTimer_--;
@@ -355,17 +353,7 @@ void GameScene::UpdateExplanation() {
 	// ---- 説明画面：Enterでゲーム本編へフェード。フェードが黒くなりきってシーンが切り替わった
 	//      瞬間に"Start!"の3Dモデルをカメラの奥・小さい状態にリセットして表示を開始する ----
 	if (input->TriggerKey(DIK_RETURN)) {
-		StartTransition(Scene::kGame, [this]() {
-			showStartPopup_ = true;
-			startPopupTimer_ = kStartPopupDuration_;
-			startWorldTransform_.scale_ = { kStartPopupStartScale_, kStartPopupStartScale_, kStartPopupStartScale_ };
-			startWorldTransform_.translation_ = {
-				camera_.translation_.x,
-				camera_.translation_.y + kStartPopupHeightOffset_,
-				camera_.translation_.z + kStartPopupFarZOffset_
-			};
-			startWorldTransform_.TransferMatrix();
-			});
+		StartTransition(Scene::kGame, [this]() { ShowStartPopup(); });
 	}
 }
 
@@ -472,9 +460,12 @@ void GameScene::UpdateStageClear() {
 void GameScene::UpdateEnd() {
 	Input* input = Input::GetInstance();
 
-	// ---- リトライ待ち→ゲームのループ：Rキーでフェードしてリセット再開 ----
+	// ---- リトライ待ち→ゲームのループ：Rキーでフェードしてリセット再開＋"Start!"ポップアップを再表示 ----
 	if (input->TriggerKey(DIK_R)) {
-		StartTransition(Scene::kGame, [this]() { Reset(); });
+		StartTransition(Scene::kGame, [this]() {
+			Reset();
+			ShowStartPopup();
+			});
 	}
 }
 
@@ -484,7 +475,20 @@ void GameScene::Reset() {
 	camera_.translation_ = { 0.0f, 5.0f, -20.0f };
 	camera_.UpdateMatrix();
 	isPaused_ = false;
-	showStartPopup_ = false; // タイトルへ戻った場合などはポップアップを出したままにしない
+	showStartPopup_ = false; // タイトルへ戻った場合などはポップアップを出したままにしない（必要な呼び出し元でShowStartPopup()を後から呼ぶ）
+}
+
+void GameScene::ShowStartPopup() {
+	// ---- "Start!"の3Dモデルをカメラの奥・小さい状態にリセットして表示を開始する ----
+	showStartPopup_ = true;
+	startPopupTimer_ = kStartPopupDuration_;
+	startWorldTransform_.scale_ = { kStartPopupStartScale_, kStartPopupStartScale_, kStartPopupStartScale_ };
+	startWorldTransform_.translation_ = {
+		camera_.translation_.x,
+		camera_.translation_.y + kStartPopupHeightOffset_,
+		camera_.translation_.z + kStartPopupFarZOffset_
+	};
+	startWorldTransform_.TransferMatrix();
 }
 
 void GameScene::Draw() {

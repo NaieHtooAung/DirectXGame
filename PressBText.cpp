@@ -23,7 +23,7 @@ void PressBText::Initialize(const Vector3& basePosition) {
 	
 
 	// ---- サイズを大きくする ----
-	worldTransform_.scale_ = { 2.0f, 2.0f, 2.0f };
+	worldTransform_.scale_ = { 1.0f, 1.0f, 1.0f };
 }
 
 void PressBText::Update() {
